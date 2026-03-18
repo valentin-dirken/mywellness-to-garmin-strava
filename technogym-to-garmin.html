@@ -67,6 +67,8 @@
   .badge.row { background:rgba(139,92,246,0.15); color:#8b5cf6; }
   .badge.cardio { background:rgba(100,116,139,0.15); color:var(--muted); }
   .badge.outdoor { background:rgba(239,68,68,0.12); color:#f87171; }
+  .badge.bike { background:rgba(251,191,36,0.15); color:#fbbf24; }
+  .badge.elliptical { background:rgba(168,85,247,0.15); color:#a855f7; }
   .footer { margin-top:3rem; padding-top:1.5rem; border-top:1px solid var(--border); color:var(--muted); font-size:0.8rem; text-align:center; line-height:1.7; }
   .footer a { color:var(--accent); text-decoration:none; }
   .warning-box { background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2); border-radius:12px; padding:1rem 1.2rem; margin-top:1rem; font-size:0.85rem; color:var(--warn); }
@@ -103,6 +105,8 @@
     <div class="filter-row">
       <label class="filter-opt"><input type="checkbox" id="fClimb" checked> <span class="badge climb">Stair Climbing</span></label>
       <label class="filter-opt"><input type="checkbox" id="fStrength" checked> <span class="badge strength">Strength</span></label>
+      <label class="filter-opt"><input type="checkbox" id="fBike" checked> <span class="badge bike">Indoor Cycling</span></label>
+      <label class="filter-opt"><input type="checkbox" id="fElliptical" checked> <span class="badge elliptical">Elliptical</span></label>
       <label class="filter-opt"><input type="checkbox" id="fTreadmill" checked> <span class="badge run">Treadmill</span></label>
       <label class="filter-opt"><input type="checkbox" id="fRowing" checked> <span class="badge row">Rowing</span></label>
       <label class="filter-opt"><input type="checkbox" id="fCardio" checked> <span class="badge cardio">Cardio</span></label>
@@ -335,31 +339,53 @@ import { Encoder, Profile } from 'https://cdn.jsdelivr.net/npm/@garmin/fitsdk@21
 
 function classify(act) {
   const fields = new Set((act.performedData?.pr || []).map(p => p.n));
-  const name = (act.activityName || '').toLowerCase();
+  const name = (act.activityName || '').toLowerCase().trim();
   const outdoor = !!act._outdoor;
 
-  if (fields.has('Floors'))
-    return { sport:'fitnessEquipment', subSport:'stairClimbing', label:'stair_climbing', badge:'climb', garmin:'Stair Climbing', strava:'Stair Stepper', filter:'fClimb' };
-  if (fields.has('TotalIsoWeight') || fields.has('Rm1'))
-    return { sport:'training', subSport:'strengthTraining', label:'strength_training', badge:'strength', garmin:'Strength Training', strava:'Weight Training', filter:'fStrength' };
-  if (fields.has('RowingDistance') || (!outdoor && name.includes('row')))
-    return { sport:'fitnessEquipment', subSport:'indoorRowing', label:'indoor_rowing', badge:'row', garmin:'Indoor Rowing', strava:'Row', filter:'fRowing' };
-  if (fields.has('HDistance') && fields.has('AvgSpeed') && (fields.has('AvgGrade') || fields.has('Elevation')))
-    return { sport:'running', subSport:'treadmill', label:'treadmill', badge:'run', garmin:'Treadmill Running', strava:'Run', filter:'fTreadmill' };
-
+  // === OUTDOOR activities: check name FIRST (fixes treadmill misclassification bug) ===
   if (outdoor) {
-    if (name.includes('run') || name.includes('course'))
+    if (name.includes('run') || name.includes('course') || name.includes('jog'))
       return { sport:'running', subSport:'generic', label:'running', badge:'outdoor', garmin:'Running', strava:'Run', filter:'fOutdoor' };
-    if (name.includes('cycl') || name.includes('bik') || name.includes('velo'))
+    if (name.includes('cycl') || name.includes('bik') || name.includes('velo') || name === 'indoor cycling')
       return { sport:'cycling', subSport:'generic', label:'cycling', badge:'outdoor', garmin:'Cycling', strava:'Ride', filter:'fOutdoor' };
     if (name.includes('walk') || name.includes('march'))
       return { sport:'walking', subSport:'generic', label:'walking', badge:'outdoor', garmin:'Walking', strava:'Walk', filter:'fOutdoor' };
     if (name.includes('hik') || name.includes('rando'))
       return { sport:'hiking', subSport:'generic', label:'hiking', badge:'outdoor', garmin:'Hiking', strava:'Hike', filter:'fOutdoor' };
+    if (name.includes('swim') || name.includes('nage') || name.includes('zwem'))
+      return { sport:'swimming', subSport:'openWater', label:'swimming', badge:'outdoor', garmin:'Open Water Swimming', strava:'Swim', filter:'fOutdoor' };
+    if (name.includes('surf'))
+      return { sport:'surfing', subSport:'generic', label:'surfing', badge:'outdoor', garmin:'Surfing', strava:'Surf', filter:'fOutdoor' };
     if (name.includes('row'))
       return { sport:'rowing', subSport:'generic', label:'rowing_outdoor', badge:'outdoor', garmin:'Rowing', strava:'Row', filter:'fOutdoor' };
+    if (name.includes('yoga'))
+      return { sport:'training', subSport:'yoga', label:'yoga', badge:'outdoor', garmin:'Yoga', strava:'Yoga', filter:'fOutdoor' };
+    if (name.includes('hiit') || name.includes('hyrox') || name.includes('burn') || name.includes('crossfit'))
+      return { sport:'hiit', subSport:'generic', label:'hiit', badge:'outdoor', garmin:'HIIT', strava:'Workout', filter:'fOutdoor' };
+    if (name.includes('box'))
+      return { sport:'boxing', subSport:'generic', label:'boxing', badge:'outdoor', garmin:'Boxing', strava:'Workout', filter:'fOutdoor' };
+    if (name.includes('stair') || name === 'stairstepper')
+      return { sport:'fitnessEquipment', subSport:'stairClimbing', label:'stair_climbing', badge:'climb', garmin:'Stair Climbing', strava:'Stair Stepper', filter:'fOutdoor' };
+    if (name.includes('pilate'))
+      return { sport:'training', subSport:'pilates', label:'pilates', badge:'outdoor', garmin:'Pilates', strava:'Workout', filter:'fOutdoor' };
     return { sport:'training', subSport:'cardioTraining', label:'outdoor_other', badge:'outdoor', garmin:'Cardio', strava:'Workout', filter:'fOutdoor' };
   }
+
+  // === INDOOR activities: classify by equipment field signature ===
+  if (fields.has('Floors'))
+    return { sport:'fitnessEquipment', subSport:'stairClimbing', label:'stair_climbing', badge:'climb', garmin:'Stair Climbing', strava:'Stair Stepper', filter:'fClimb' };
+  if (fields.has('TotalIsoWeight') || fields.has('Rm1'))
+    return { sport:'training', subSport:'strengthTraining', label:'strength_training', badge:'strength', garmin:'Strength Training', strava:'Weight Training', filter:'fStrength' };
+  if (fields.has('RowingDistance'))
+    return { sport:'fitnessEquipment', subSport:'indoorRowing', label:'indoor_rowing', badge:'row', garmin:'Indoor Rowing', strava:'Row', filter:'fRowing' };
+  if (fields.has('AvgRpm'))
+    return { sport:'cycling', subSport:'indoorCycling', label:'indoor_cycling', badge:'bike', garmin:'Indoor Cycling', strava:'Ride', filter:'fBike' };
+  if (fields.has('AvgSpm'))
+    return { sport:'fitnessEquipment', subSport:'elliptical', label:'elliptical', badge:'elliptical', garmin:'Elliptical', strava:'Elliptical', filter:'fElliptical' };
+  if (fields.has('HDistance') && fields.has('AvgSpeed') && (fields.has('AvgGrade') || fields.has('Elevation')))
+    return { sport:'running', subSport:'treadmill', label:'treadmill', badge:'run', garmin:'Treadmill Running', strava:'Run', filter:'fTreadmill' };
+  if (fields.has('HDistance') && fields.has('AvgSpeed'))
+    return { sport:'cycling', subSport:'indoorCycling', label:'indoor_cycling', badge:'bike', garmin:'Indoor Cycling', strava:'Ride', filter:'fBike' };
 
   return { sport:'training', subSport:'cardioTraining', label:'cardio', badge:'cardio', garmin:'Cardio', strava:'Workout', filter:'fCardio' };
 }

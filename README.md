@@ -3,7 +3,7 @@
 **Convert MyWellness (Technogym) workout data to native Garmin FIT files.**
 Single HTML file. No server. No install. Runs entirely in your browser.
 
-Created by [Valentin Dirken](https://github.com/valentin-dirken)
+Created by [Valentin Dirken](https://github.com/valentindirken)
 
 [English](#english) | [Francais](#francais) | [Nederlands](#nederlands) | [Deutsch](#deutsch)
 
@@ -21,18 +21,36 @@ Technogym equipment (Excite Climb, Artis Strength, treadmills, rowers) logs work
 
 ### Activity type mapping
 
-| Technogym Equipment | FIT sport / subSport | Garmin Connect | Strava |
+**Indoor equipment (classified by MyWellness JSON field signature):**
+
+| Technogym Equipment | Detection Field(s) | FIT sport / subSport | Garmin Connect | Strava |
+|---|---|---|---|---|
+| Excite Climb, Excite+ Climb | `Floors` | fitnessEquipment / stairClimbing | Stair Climbing | Stair Stepper |
+| Selection, Biostrength, Pure Strength, Artis (strength) | `TotalIsoWeight` or `Rm1` | training / strengthTraining | Strength Training | Weight Training |
+| Skillrow | `RowingDistance` | fitnessEquipment / indoorRowing | Indoor Rowing | Row |
+| Excite Bike, Skillbike, Technogym Ride, Group Cycle | `AvgRpm` | cycling / indoorCycling | Indoor Cycling | Ride |
+| Excite Synchro, Excite Vario | `AvgSpm` | fitnessEquipment / elliptical | Elliptical | Elliptical |
+| Excite Run, Skillrun, Technogym Run | `HDistance` + `AvgSpeed` + (`AvgGrade` or `Elevation`) | running / treadmill | Treadmill Running | Run |
+| Excite Recline, Excite Bike (no RPM) | `HDistance` + `AvgSpeed` (no grade) | cycling / indoorCycling | Indoor Cycling | Ride |
+| Biocircuit, OMNIA, Kinesis, manual entries | Duration + Calories only | training / cardioTraining | Cardio | Workout |
+
+**Outdoor activities (classified by MyWellness `activityName`):**
+
+| Activity Name (contains) | FIT sport / subSport | Garmin Connect | Strava |
 |---|---|---|---|
-| Excite Climb (Floors) | fitnessEquipment / stairClimbing | Stair Climbing | Stair Stepper |
-| Artis Strength (TotalIsoWeight) | training / strengthTraining | Strength Training | Weight Training |
-| Indoor Rower (RowingDistance) | fitnessEquipment / indoorRowing | Indoor Rowing | Row |
-| Treadmill (HDistance + AvgSpeed) | running / treadmill | Treadmill Running | Run |
-| Cardio (fallback) | training / cardioTraining | Cardio | Workout |
-| Running (outdoor) | running / generic | Running | Run |
-| Cycling (outdoor) | cycling / generic | Cycling | Ride |
-| Walking (outdoor) | walking / generic | Walking | Walk |
-| Hiking (outdoor) | hiking / generic | Hiking | Hike |
-| Rowing (outdoor) | rowing / generic | Rowing | Row |
+| run, course, jog | running / generic | Running | Run |
+| walk, march | walking / generic | Walking | Walk |
+| hik, rando | hiking / generic | Hiking | Hike |
+| cycl, bik, velo, indoor cycling | cycling / generic | Cycling | Ride |
+| row | rowing / generic | Rowing | Row |
+| swim, nage | swimming / openWater | Open Water Swimming | Swim |
+| surf | surfing / generic | Surfing | Surf |
+| yoga | training / yoga | Yoga | Yoga |
+| hiit, hyrox, burn, crossfit | hiit / generic | HIIT | Workout |
+| box | boxing / generic | Boxing | Workout |
+| stair, stairstepper | fitnessEquipment / stairClimbing | Stair Climbing | Stair Stepper |
+| pilate | training / pilates | Pilates | Workout |
+| (fallback) | training / cardioTraining | Cardio | Workout |
 
 ### FIT Protocol compliance
 
@@ -127,18 +145,36 @@ Les equipements Technogym (Excite Climb, Artis Strength, tapis de course, rameur
 
 ### Mapping des types d'activite
 
-| Equipement Technogym | FIT sport / subSport | Garmin Connect | Strava |
+**Equipements indoor (classifies par champs JSON MyWellness) :**
+
+| Equipement Technogym | Champ(s) de detection | FIT sport / subSport | Garmin Connect | Strava |
+|---|---|---|---|---|
+| Excite Climb, Excite+ Climb | `Floors` | fitnessEquipment / stairClimbing | Stair Climbing | Stair Stepper |
+| Selection, Biostrength, Pure Strength, Artis (musculation) | `TotalIsoWeight` ou `Rm1` | training / strengthTraining | Strength Training | Weight Training |
+| Skillrow | `RowingDistance` | fitnessEquipment / indoorRowing | Indoor Rowing | Row |
+| Excite Bike, Skillbike, Technogym Ride, Group Cycle | `AvgRpm` | cycling / indoorCycling | Indoor Cycling | Ride |
+| Excite Synchro, Excite Vario | `AvgSpm` | fitnessEquipment / elliptical | Elliptical | Elliptical |
+| Excite Run, Skillrun, Technogym Run | `HDistance` + `AvgSpeed` + (`AvgGrade` ou `Elevation`) | running / treadmill | Treadmill Running | Run |
+| Excite Recline, Excite Bike (sans RPM) | `HDistance` + `AvgSpeed` (sans grade) | cycling / indoorCycling | Indoor Cycling | Ride |
+| Biocircuit, OMNIA, Kinesis, entrees manuelles | Duration + Calories uniquement | training / cardioTraining | Cardio | Workout |
+
+**Activites outdoor (classifiees par `activityName` MyWellness) :**
+
+| Nom de l'activite (contient) | FIT sport / subSport | Garmin Connect | Strava |
 |---|---|---|---|
-| Excite Climb (Floors) | fitnessEquipment / stairClimbing | Stair Climbing | Stair Stepper |
-| Artis Strength (TotalIsoWeight) | training / strengthTraining | Strength Training | Weight Training |
-| Rameur indoor (RowingDistance) | fitnessEquipment / indoorRowing | Indoor Rowing | Row |
-| Tapis de course (HDistance + AvgSpeed) | running / treadmill | Treadmill Running | Run |
-| Cardio (defaut) | training / cardioTraining | Cardio | Workout |
-| Course (outdoor) | running / generic | Running | Run |
-| Velo (outdoor) | cycling / generic | Cycling | Ride |
-| Marche (outdoor) | walking / generic | Walking | Walk |
-| Randonnee (outdoor) | hiking / generic | Hiking | Hike |
-| Aviron (outdoor) | rowing / generic | Rowing | Row |
+| run, course, jog | running / generic | Running | Run |
+| walk, march | walking / generic | Walking | Walk |
+| hik, rando | hiking / generic | Hiking | Hike |
+| cycl, bik, velo | cycling / generic | Cycling | Ride |
+| row | rowing / generic | Rowing | Row |
+| swim, nage | swimming / openWater | Open Water Swimming | Swim |
+| surf | surfing / generic | Surfing | Surf |
+| yoga | training / yoga | Yoga | Yoga |
+| hiit, hyrox, burn, crossfit | hiit / generic | HIIT | Workout |
+| box | boxing / generic | Boxing | Workout |
+| stair, stairstepper | fitnessEquipment / stairClimbing | Stair Climbing | Stair Stepper |
+| pilate | training / pilates | Pilates | Workout |
+| (defaut) | training / cardioTraining | Cardio | Workout |
 
 ### Conformite au protocole FIT
 
@@ -205,18 +241,36 @@ Technogym-apparatuur (Excite Climb, Artis Strength, loopbanden, roeiers) slaat t
 
 ### Activiteitstypes mapping
 
-| Technogym apparaat | FIT sport / subSport | Garmin Connect | Strava |
+**Indoor apparatuur (geclassificeerd op MyWellness JSON-velden):**
+
+| Technogym apparaat | Detectieveld(en) | FIT sport / subSport | Garmin Connect | Strava |
+|---|---|---|---|---|
+| Excite Climb, Excite+ Climb | `Floors` | fitnessEquipment / stairClimbing | Stair Climbing | Stair Stepper |
+| Selection, Biostrength, Pure Strength, Artis (kracht) | `TotalIsoWeight` of `Rm1` | training / strengthTraining | Strength Training | Weight Training |
+| Skillrow | `RowingDistance` | fitnessEquipment / indoorRowing | Indoor Rowing | Row |
+| Excite Bike, Skillbike, Technogym Ride, Group Cycle | `AvgRpm` | cycling / indoorCycling | Indoor Cycling | Ride |
+| Excite Synchro, Excite Vario | `AvgSpm` | fitnessEquipment / elliptical | Elliptical | Elliptical |
+| Excite Run, Skillrun, Technogym Run | `HDistance` + `AvgSpeed` + (`AvgGrade` of `Elevation`) | running / treadmill | Treadmill Running | Run |
+| Excite Recline, Excite Bike (zonder RPM) | `HDistance` + `AvgSpeed` (zonder grade) | cycling / indoorCycling | Indoor Cycling | Ride |
+| Biocircuit, OMNIA, Kinesis, handmatige invoer | Alleen Duration + Calories | training / cardioTraining | Cardio | Workout |
+
+**Buitenactiviteiten (geclassificeerd op MyWellness `activityName`):**
+
+| Activiteitsnaam (bevat) | FIT sport / subSport | Garmin Connect | Strava |
 |---|---|---|---|
-| Excite Climb (Floors) | fitnessEquipment / stairClimbing | Stair Climbing | Stair Stepper |
-| Artis Strength (TotalIsoWeight) | training / strengthTraining | Strength Training | Weight Training |
-| Indoor roeier (RowingDistance) | fitnessEquipment / indoorRowing | Indoor Rowing | Row |
-| Loopband (HDistance + AvgSpeed) | running / treadmill | Treadmill Running | Run |
-| Cardio (standaard) | training / cardioTraining | Cardio | Workout |
-| Hardlopen (buiten) | running / generic | Running | Run |
-| Fietsen (buiten) | cycling / generic | Cycling | Ride |
-| Wandelen (buiten) | walking / generic | Walking | Walk |
-| Wandeltocht (buiten) | hiking / generic | Hiking | Hike |
-| Roeien (buiten) | rowing / generic | Rowing | Row |
+| run, course, jog | running / generic | Running | Run |
+| walk, march | walking / generic | Walking | Walk |
+| hik, rando | hiking / generic | Hiking | Hike |
+| cycl, bik, velo | cycling / generic | Cycling | Ride |
+| row | rowing / generic | Rowing | Row |
+| swim, nage, zwem | swimming / openWater | Open Water Swimming | Swim |
+| surf | surfing / generic | Surfing | Surf |
+| yoga | training / yoga | Yoga | Yoga |
+| hiit, hyrox, burn, crossfit | hiit / generic | HIIT | Workout |
+| box | boxing / generic | Boxing | Workout |
+| stair, stairstepper | fitnessEquipment / stairClimbing | Stair Climbing | Stair Stepper |
+| pilate | training / pilates | Pilates | Workout |
+| (standaard) | training / cardioTraining | Cardio | Workout |
 
 ### FIT Protocol conformiteit
 
@@ -281,18 +335,36 @@ Technogym-Gerate (Excite Climb, Artis Strength, Laufbander, Rudermaschinen) spei
 
 ### Aktivitatstypen-Zuordnung
 
-| Technogym Gerat | FIT sport / subSport | Garmin Connect | Strava |
+**Indoor-Gerate (klassifiziert nach MyWellness JSON-Feldern):**
+
+| Technogym Gerat | Erkennungsfeld(er) | FIT sport / subSport | Garmin Connect | Strava |
+|---|---|---|---|---|
+| Excite Climb, Excite+ Climb | `Floors` | fitnessEquipment / stairClimbing | Stair Climbing | Stair Stepper |
+| Selection, Biostrength, Pure Strength, Artis (Kraft) | `TotalIsoWeight` oder `Rm1` | training / strengthTraining | Strength Training | Weight Training |
+| Skillrow | `RowingDistance` | fitnessEquipment / indoorRowing | Indoor Rowing | Row |
+| Excite Bike, Skillbike, Technogym Ride, Group Cycle | `AvgRpm` | cycling / indoorCycling | Indoor Cycling | Ride |
+| Excite Synchro, Excite Vario | `AvgSpm` | fitnessEquipment / elliptical | Elliptical | Elliptical |
+| Excite Run, Skillrun, Technogym Run | `HDistance` + `AvgSpeed` + (`AvgGrade` oder `Elevation`) | running / treadmill | Treadmill Running | Run |
+| Excite Recline, Excite Bike (ohne RPM) | `HDistance` + `AvgSpeed` (ohne Grade) | cycling / indoorCycling | Indoor Cycling | Ride |
+| Biocircuit, OMNIA, Kinesis, manuelle Eingaben | Nur Duration + Calories | training / cardioTraining | Cardio | Workout |
+
+**Outdoor-Aktivitaten (klassifiziert nach MyWellness `activityName`):**
+
+| Aktivitatsname (enthalt) | FIT sport / subSport | Garmin Connect | Strava |
 |---|---|---|---|
-| Excite Climb (Floors) | fitnessEquipment / stairClimbing | Stair Climbing | Stair Stepper |
-| Artis Strength (TotalIsoWeight) | training / strengthTraining | Strength Training | Weight Training |
-| Indoor-Rudermaschine (RowingDistance) | fitnessEquipment / indoorRowing | Indoor Rowing | Row |
-| Laufband (HDistance + AvgSpeed) | running / treadmill | Treadmill Running | Run |
-| Cardio (Standard) | training / cardioTraining | Cardio | Workout |
-| Laufen (outdoor) | running / generic | Running | Run |
-| Radfahren (outdoor) | cycling / generic | Cycling | Ride |
-| Gehen (outdoor) | walking / generic | Walking | Walk |
-| Wandern (outdoor) | hiking / generic | Hiking | Hike |
-| Rudern (outdoor) | rowing / generic | Rowing | Row |
+| run, course, jog | running / generic | Running | Run |
+| walk, march | walking / generic | Walking | Walk |
+| hik, rando | hiking / generic | Hiking | Hike |
+| cycl, bik, velo | cycling / generic | Cycling | Ride |
+| row | rowing / generic | Rowing | Row |
+| swim, nage | swimming / openWater | Open Water Swimming | Swim |
+| surf | surfing / generic | Surfing | Surf |
+| yoga | training / yoga | Yoga | Yoga |
+| hiit, hyrox, burn, crossfit | hiit / generic | HIIT | Workout |
+| box | boxing / generic | Boxing | Workout |
+| stair, stairstepper | fitnessEquipment / stairClimbing | Stair Climbing | Stair Stepper |
+| pilate | training / pilates | Pilates | Workout |
+| (Standard) | training / cardioTraining | Cardio | Workout |
 
 ### FIT-Protokoll Konformitat
 
