@@ -3,7 +3,7 @@
 **Convert MyWellness (Technogym) workout data to native Garmin FIT files.**
 Single HTML file. No server. No install. Runs entirely in your browser.
 
-Created by [Valentin Dirken](https://github.com/valentindirken)
+Created by [Valentin Dirken](https://github.com/valentin-dirken)
 
 [English](#english) | [Francais](#francais) | [Nederlands](#nederlands) | [Deutsch](#deutsch)
 
