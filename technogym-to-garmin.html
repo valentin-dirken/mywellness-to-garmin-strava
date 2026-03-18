@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyWellness &#8594; Garmin + Strava Converter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;500;700;900&display=swap');
+  :root {
+    --bg: #0a0e17; --surface: #111827; --border: #1e293b;
+    --accent: #01A9CE; --accent2: #06d6a0; --text: #e2e8f0;
+    --muted: #64748b; --danger: #ef4444; --warn: #f59e0b;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding:2rem; }
+  .container { max-width:900px; margin:0 auto; }
+  header { display:flex; align-items:center; gap:1rem; margin-bottom:2rem; padding-bottom:1.5rem; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .header-left { display:flex; align-items:center; gap:1rem; flex:1; min-width:0; }
+  .logo { width:48px; height:48px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:1.4rem; color:var(--bg); flex-shrink:0; }
+  h1 { font-weight:900; font-size:1.5rem; letter-spacing:-0.02em; }
+  h1 span { color:var(--accent); }
+  .subtitle { color:var(--muted); font-weight:300; font-size:0.9rem; margin-top:2px; }
+  .sdk-badge { display:inline-block; background:rgba(1,169,206,0.12); color:var(--accent); font-family:'JetBrains Mono',monospace; font-size:0.65rem; padding:2px 6px; border-radius:4px; margin-left:0.5rem; vertical-align:middle; }
+  .lang-sel { display:flex; gap:4px; flex-shrink:0; }
+  .lang-btn { background:var(--surface); border:1px solid var(--border); color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:0.7rem; padding:4px 8px; border-radius:6px; cursor:pointer; transition:all 0.2s; }
+  .lang-btn:hover { border-color:var(--accent); color:var(--text); }
+  .lang-btn.active { background:rgba(1,169,206,0.15); border-color:var(--accent); color:var(--accent); }
+  .drop-zone { border:2px dashed var(--border); border-radius:16px; padding:3rem 2rem; text-align:center; cursor:pointer; transition:all 0.3s; background:var(--surface); }
+  .drop-zone:hover,.drop-zone.dragover { border-color:var(--accent); background:rgba(1,169,206,0.05); }
+  .drop-zone .icon { font-size:3rem; margin-bottom:1rem; opacity:0.6; }
+  .drop-zone p { color:var(--muted); font-size:0.95rem; }
+  .drop-zone strong { color:var(--text); }
+  input[type="file"] { display:none; }
+  .filters { margin-top:1.2rem; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem 1.2rem; display:none; }
+  .filters.visible { display:block; }
+  .filters-title { color:var(--muted); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.7rem; }
+  .filter-row { display:flex; flex-wrap:wrap; gap:0.8rem; align-items:center; }
+  .filter-opt { display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.85rem; }
+  .filter-opt input[type="checkbox"] { accent-color:var(--accent); width:16px; height:16px; cursor:pointer; }
+  .filter-hint { color:var(--muted); font-size:0.7rem; font-style:italic; }
+  .status { margin-top:1.5rem; font-family:'JetBrains Mono',monospace; font-size:0.8rem; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.2rem; max-height:300px; overflow-y:auto; display:none; }
+  .status.visible { display:block; }
+  .status .line { padding:2px 0; }
+  .status .ok { color:var(--accent2); }
+  .status .info { color:var(--accent); }
+  .status .warn { color:var(--warn); }
+  .status .err { color:var(--danger); }
+  .results { margin-top:1.5rem; display:none; }
+  .results.visible { display:block; }
+  .results-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+  .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem 1.2rem; }
+  .stat-card .label { color:var(--muted); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; }
+  .stat-card .value { font-size:1.8rem; font-weight:700; margin-top:4px; }
+  .stat-card .value.climb { color:var(--accent); }
+  .stat-card .value.strength { color:var(--accent2); }
+  .stat-card .value.run { color:var(--warn); }
+  .download-btn { display:inline-flex; align-items:center; gap:0.6rem; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:var(--bg); border:none; padding:0.9rem 2rem; border-radius:12px; font-family:'Outfit',sans-serif; font-weight:700; font-size:1rem; cursor:pointer; transition:transform 0.2s,box-shadow 0.2s; letter-spacing:-0.01em; }
+  .download-btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(1,169,206,0.3); }
+  .download-btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; box-shadow:none; }
+  .mapping-table { width:100%; margin-top:1.5rem; border-collapse:collapse; font-size:0.85rem; }
+  .mapping-table th { text-align:left; color:var(--muted); font-weight:500; padding:0.5rem 0.8rem; border-bottom:1px solid var(--border); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em; }
+  .mapping-table td { padding:0.5rem 0.8rem; border-bottom:1px solid rgba(30,41,59,0.5); }
+  .badge { display:inline-block; padding:2px 8px; border-radius:6px; font-size:0.75rem; font-weight:700; font-family:'JetBrains Mono',monospace; }
+  .badge.climb { background:rgba(1,169,206,0.15); color:var(--accent); }
+  .badge.strength { background:rgba(6,214,160,0.15); color:var(--accent2); }
+  .badge.run { background:rgba(245,158,11,0.15); color:var(--warn); }
+  .badge.row { background:rgba(139,92,246,0.15); color:#8b5cf6; }
+  .badge.cardio { background:rgba(100,116,139,0.15); color:var(--muted); }
+  .badge.outdoor { background:rgba(239,68,68,0.12); color:#f87171; }
+  .footer { margin-top:3rem; padding-top:1.5rem; border-top:1px solid var(--border); color:var(--muted); font-size:0.8rem; text-align:center; line-height:1.7; }
+  .footer a { color:var(--accent); text-decoration:none; }
+  .warning-box { background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2); border-radius:12px; padding:1rem 1.2rem; margin-top:1rem; font-size:0.85rem; color:var(--warn); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-left">
+      <div class="logo">TG</div>
+      <div>
+        <h1>MyWellness <span>&#8594;</span> Garmin + Strava <span class="sdk-badge">FIT SDK v21.195</span></h1>
+        <div class="subtitle" id="subtitle"></div>
+      </div>
+    </div>
+    <div class="lang-sel">
+      <button class="lang-btn active" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" onclick="setLang('fr')">FR</button>
+      <button class="lang-btn" onclick="setLang('nl')">NL</button>
+      <button class="lang-btn" onclick="setLang('de')">DE</button>
+    </div>
+  </header>
+
+  <div class="drop-zone" id="dropZone">
+    <div class="icon">&#128230;</div>
+    <p><strong id="dropTitle"></strong></p>
+    <p style="margin-top:0.5rem" id="dropSub"></p>
+    <p style="margin-top:1rem; font-size:0.8rem" id="dropHint"></p>
+    <input type="file" id="fileInput" accept=".zip,.json">
+  </div>
+
+  <div class="filters" id="filters">
+    <div class="filters-title" id="filtersTitle"></div>
+    <div class="filter-row">
+      <label class="filter-opt"><input type="checkbox" id="fClimb" checked> <span class="badge climb">Stair Climbing</span></label>
+      <label class="filter-opt"><input type="checkbox" id="fStrength" checked> <span class="badge strength">Strength</span></label>
+      <label class="filter-opt"><input type="checkbox" id="fTreadmill" checked> <span class="badge run">Treadmill</span></label>
+      <label class="filter-opt"><input type="checkbox" id="fRowing" checked> <span class="badge row">Rowing</span></label>
+      <label class="filter-opt"><input type="checkbox" id="fCardio" checked> <span class="badge cardio">Cardio</span></label>
+      <label class="filter-opt"><input type="checkbox" id="fOutdoor"> <span class="badge outdoor">Outdoor</span> <span class="filter-hint" id="filterHint"></span></label>
+    </div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="results" id="results">
+    <div class="results-grid" id="statsGrid"></div>
+    <button class="download-btn" id="downloadBtn" disabled></button>
+    <div class="warning-box" id="warningBox"></div>
+    <table class="mapping-table" id="mappingTable">
+      <thead><tr><th id="thType"></th><th id="thFit"></th><th>Garmin Connect</th><th>Strava</th><th>#</th></tr></thead>
+      <tbody id="mappingBody"></tbody>
+    </table>
+  </div>
+
+  <div class="footer" id="footer"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script>
+/* ================================================================
+   i18n - 4 languages
+   ================================================================ */
+const T = {
+  en: {
+    subtitle: 'Convert MyWellness (Technogym) JSON exports to native Garmin FIT files',
+    dropTitle: 'Drop your MyWellness export (.zip)',
+    dropSub: 'or click here to select a file',
+    dropHint: 'mywellness.com \u2192 Settings \u2192 Data Export \u2192 Download',
+    filtersTitle: 'Filters (uncheck to exclude)',
+    filterHint: '(off = avoids duplicates with your Garmin watch)',
+    downloadBtn: '\u2B07 Download FIT files',
+    generating: 'Generating...',
+    thType: 'Technogym Type',
+    thFit: 'Sport / SubSport (FIT SDK)',
+    converted: 'Converted',
+    filtered: 'Filtered',
+    warningGarmin: 'Garmin Connect',
+    warningStrava: 'Strava',
+    warningGarminDesc: 'connect.garmin.com \u2192 Import Data \u2192 drop .fit files',
+    warningStravaDesc: 'strava.com/upload/select \u2192 drop .fit files (or auto-sync via Garmin Connect)',
+    warningNote: 'FIT SDK v21 Activity File. Garmin: Training Effect + Load. Strava: Relative Effort + Fitness.',
+    footer: '100% client-side. Your data never leaves your browser.',
+    footerCredit: 'Created by <a href="https://github.com/valentindirken" target="_blank">Valentin Dirken</a>',
+    footerPowered: 'Powered by <a href="https://developer.garmin.com/fit/overview/" target="_blank">Garmin FIT SDK</a> | Compatible <a href="https://www.strava.com/upload/select" target="_blank">Strava</a>',
+    logFile: 'File',
+    logZipContains: 'ZIP contains',
+    logFiles: 'file(s)',
+    logNoJson: 'No JSON file found in ZIP.',
+    logEmpty: 'empty',
+    logBiometrics: 'biometrics (skipped)',
+    logIndoor: 'indoor',
+    logOutdoor: 'outdoor',
+    logUnknownSchema: 'unknown schema',
+    logJsonInvalid: 'invalid JSON',
+    logNoActivity: 'No activity found.',
+    logConverted: 'converted',
+    logFiltered: 'filtered',
+    logErrors: 'errors',
+    logDownloaded: 'ZIP downloaded. \u2192 connect.garmin.com > Import Data',
+    logUnsupported: 'Unsupported format. Use .zip or .json.',
+    logZipError: 'ZIP error',
+    logJsonError: 'JSON error',
+    logEntries: 'entries',
+  },
+  fr: {
+    subtitle: 'Convertisseur MyWellness (Technogym) JSON \u2192 FIT natif Garmin',
+    dropTitle: 'Deposez votre export MyWellness (.zip)',
+    dropSub: 'ou cliquez ici pour selectionner un fichier',
+    dropHint: 'mywellness.com \u2192 Settings \u2192 Data Export \u2192 Download',
+    filtersTitle: 'Filtres (decochez pour exclure)',
+    filterHint: '(off = evite les doublons avec votre montre Garmin)',
+    downloadBtn: '\u2B07 Telecharger les fichiers FIT',
+    generating: 'Generation...',
+    thType: 'Type Technogym',
+    thFit: 'Sport / SubSport (FIT SDK)',
+    converted: 'Converties',
+    filtered: 'Filtrees',
+    warningGarmin: 'Garmin Connect',
+    warningStrava: 'Strava',
+    warningGarminDesc: 'connect.garmin.com \u2192 Import Data \u2192 deposez les .fit',
+    warningStravaDesc: 'strava.com/upload/select \u2192 deposez les .fit (ou auto-sync via Garmin Connect)',
+    warningNote: 'FIT SDK v21 Activity File. Garmin : Training Effect + Load. Strava : Relative Effort + Fitness.',
+    footer: '100% client-side. Vos donnees ne quittent jamais votre navigateur.',
+    footerCredit: 'Cree par <a href="https://github.com/valentindirken" target="_blank">Valentin Dirken</a>',
+    footerPowered: 'Propulse par <a href="https://developer.garmin.com/fit/overview/" target="_blank">Garmin FIT SDK</a> | Compatible <a href="https://www.strava.com/upload/select" target="_blank">Strava</a>',
+    logFile: 'Fichier',
+    logZipContains: 'ZIP contient',
+    logFiles: 'fichier(s)',
+    logNoJson: 'Aucun fichier JSON dans le ZIP.',
+    logEmpty: 'vide',
+    logBiometrics: 'biometrics (ignore)',
+    logIndoor: 'indoor',
+    logOutdoor: 'outdoor',
+    logUnknownSchema: 'schema inconnu',
+    logJsonInvalid: 'JSON invalide',
+    logNoActivity: 'Aucune activite trouvee.',
+    logConverted: 'converties',
+    logFiltered: 'filtrees',
+    logErrors: 'erreurs',
+    logDownloaded: 'ZIP telecharge. \u2192 connect.garmin.com > Import Data',
+    logUnsupported: 'Format non supporte. Utilisez .zip ou .json.',
+    logZipError: 'Erreur ZIP',
+    logJsonError: 'Erreur JSON',
+    logEntries: 'entrees',
+  },
+  nl: {
+    subtitle: 'Converteer MyWellness (Technogym) JSON-exports naar Garmin FIT-bestanden',
+    dropTitle: 'Sleep je MyWellness-export (.zip) hierheen',
+    dropSub: 'of klik hier om een bestand te selecteren',
+    dropHint: 'mywellness.com \u2192 Settings \u2192 Data Export \u2192 Download',
+    filtersTitle: 'Filters (uitvinken om uit te sluiten)',
+    filterHint: '(uit = voorkomt duplicaten met je Garmin-horloge)',
+    downloadBtn: '\u2B07 FIT-bestanden downloaden',
+    generating: 'Genereren...',
+    thType: 'Technogym Type',
+    thFit: 'Sport / SubSport (FIT SDK)',
+    converted: 'Geconverteerd',
+    filtered: 'Gefilterd',
+    warningGarmin: 'Garmin Connect',
+    warningStrava: 'Strava',
+    warningGarminDesc: 'connect.garmin.com \u2192 Import Data \u2192 sleep .fit-bestanden',
+    warningStravaDesc: 'strava.com/upload/select \u2192 sleep .fit-bestanden (of auto-sync via Garmin Connect)',
+    warningNote: 'FIT SDK v21 Activity File. Garmin: Training Effect + Load. Strava: Relative Effort + Fitness.',
+    footer: '100% client-side. Je gegevens verlaten nooit je browser.',
+    footerCredit: 'Gemaakt door <a href="https://github.com/valentindirken" target="_blank">Valentin Dirken</a>',
+    footerPowered: 'Aangedreven door <a href="https://developer.garmin.com/fit/overview/" target="_blank">Garmin FIT SDK</a> | Compatibel met <a href="https://www.strava.com/upload/select" target="_blank">Strava</a>',
+    logFile: 'Bestand',
+    logZipContains: 'ZIP bevat',
+    logFiles: 'bestand(en)',
+    logNoJson: 'Geen JSON-bestand gevonden in ZIP.',
+    logEmpty: 'leeg',
+    logBiometrics: 'biometrie (overgeslagen)',
+    logIndoor: 'indoor',
+    logOutdoor: 'outdoor',
+    logUnknownSchema: 'onbekend schema',
+    logJsonInvalid: 'ongeldige JSON',
+    logNoActivity: 'Geen activiteit gevonden.',
+    logConverted: 'geconverteerd',
+    logFiltered: 'gefilterd',
+    logErrors: 'fouten',
+    logDownloaded: 'ZIP gedownload. \u2192 connect.garmin.com > Import Data',
+    logUnsupported: 'Niet-ondersteund formaat. Gebruik .zip of .json.',
+    logZipError: 'ZIP-fout',
+    logJsonError: 'JSON-fout',
+    logEntries: 'items',
+  },
+  de: {
+    subtitle: 'MyWellness (Technogym) JSON-Exporte in native Garmin FIT-Dateien konvertieren',
+    dropTitle: 'MyWellness-Export (.zip) hierher ziehen',
+    dropSub: 'oder klicken Sie hier, um eine Datei auszuwahlen',
+    dropHint: 'mywellness.com \u2192 Settings \u2192 Data Export \u2192 Download',
+    filtersTitle: 'Filter (deaktivieren zum Ausschliessen)',
+    filterHint: '(aus = vermeidet Duplikate mit Ihrer Garmin-Uhr)',
+    downloadBtn: '\u2B07 FIT-Dateien herunterladen',
+    generating: 'Wird generiert...',
+    thType: 'Technogym Typ',
+    thFit: 'Sport / SubSport (FIT SDK)',
+    converted: 'Konvertiert',
+    filtered: 'Gefiltert',
+    warningGarmin: 'Garmin Connect',
+    warningStrava: 'Strava',
+    warningGarminDesc: 'connect.garmin.com \u2192 Import Data \u2192 .fit-Dateien ablegen',
+    warningStravaDesc: 'strava.com/upload/select \u2192 .fit-Dateien ablegen (oder Auto-Sync uber Garmin Connect)',
+    warningNote: 'FIT SDK v21 Activity File. Garmin: Training Effect + Load. Strava: Relative Effort + Fitness.',
+    footer: '100% client-seitig. Ihre Daten verlassen niemals Ihren Browser.',
+    footerCredit: 'Erstellt von <a href="https://github.com/valentindirken" target="_blank">Valentin Dirken</a>',
+    footerPowered: 'Basiert auf <a href="https://developer.garmin.com/fit/overview/" target="_blank">Garmin FIT SDK</a> | Kompatibel mit <a href="https://www.strava.com/upload/select" target="_blank">Strava</a>',
+    logFile: 'Datei',
+    logZipContains: 'ZIP enthalt',
+    logFiles: 'Datei(en)',
+    logNoJson: 'Keine JSON-Datei in ZIP gefunden.',
+    logEmpty: 'leer',
+    logBiometrics: 'Biometrie (ubersprungen)',
+    logIndoor: 'Indoor',
+    logOutdoor: 'Outdoor',
+    logUnknownSchema: 'unbekanntes Schema',
+    logJsonInvalid: 'ungultiges JSON',
+    logNoActivity: 'Keine Aktivitat gefunden.',
+    logConverted: 'konvertiert',
+    logFiltered: 'gefiltert',
+    logErrors: 'Fehler',
+    logDownloaded: 'ZIP heruntergeladen. \u2192 connect.garmin.com > Import Data',
+    logUnsupported: 'Nicht unterstutztes Format. Verwenden Sie .zip oder .json.',
+    logZipError: 'ZIP-Fehler',
+    logJsonError: 'JSON-Fehler',
+    logEntries: 'Eintrage',
+  }
+};
+
+let lang = 'en';
+function t(key) { return T[lang]?.[key] || T.en[key] || key; }
+
+function setLang(l) {
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent === l.toUpperCase()));
+  document.getElementById('subtitle').textContent = t('subtitle');
+  document.getElementById('dropTitle').textContent = t('dropTitle');
+  document.getElementById('dropSub').textContent = t('dropSub');
+  document.getElementById('dropHint').textContent = t('dropHint');
+  document.getElementById('filtersTitle').textContent = t('filtersTitle');
+  document.getElementById('filterHint').textContent = t('filterHint');
+  document.getElementById('downloadBtn').innerHTML = t('downloadBtn');
+  document.getElementById('thType').textContent = t('thType');
+  document.getElementById('thFit').textContent = t('thFit');
+  document.getElementById('warningBox').innerHTML = `<strong>${t('warningGarmin')}</strong> : ${t('warningGarminDesc')}<br><strong>${t('warningStrava')}</strong> : ${t('warningStravaDesc')}<br><span style="font-size:0.78rem;opacity:0.85">${t('warningNote')}</span>`;
+  document.getElementById('footer').innerHTML = `${t('footer')}<br>${t('footerCredit')} | ${t('footerPowered')}`;
+  // Update stat cards if visible
+  const convertedCard = document.querySelector('[data-stat="converted"]');
+  if (convertedCard) convertedCard.querySelector('.label').textContent = t('converted');
+  const filteredCard = document.querySelector('[data-stat="filtered"]');
+  if (filteredCard) filteredCard.querySelector('.label').textContent = t('filtered');
+}
+
+// Init
+setLang('en');
+</script>
+
+<script type="module">
+import { Encoder, Profile } from 'https://cdn.jsdelivr.net/npm/@garmin/fitsdk@21.195.0/+esm';
+
+/* ================================================================
+   Sport/SubSport classification
+   ================================================================ */
+
+function classify(act) {
+  const fields = new Set((act.performedData?.pr || []).map(p => p.n));
+  const name = (act.activityName || '').toLowerCase();
+  const outdoor = !!act._outdoor;
+
+  if (fields.has('Floors'))
+    return { sport:'fitnessEquipment', subSport:'stairClimbing', label:'stair_climbing', badge:'climb', garmin:'Stair Climbing', strava:'Stair Stepper', filter:'fClimb' };
+  if (fields.has('TotalIsoWeight') || fields.has('Rm1'))
+    return { sport:'training', subSport:'strengthTraining', label:'strength_training', badge:'strength', garmin:'Strength Training', strava:'Weight Training', filter:'fStrength' };
+  if (fields.has('RowingDistance') || (!outdoor && name.includes('row')))
+    return { sport:'fitnessEquipment', subSport:'indoorRowing', label:'indoor_rowing', badge:'row', garmin:'Indoor Rowing', strava:'Row', filter:'fRowing' };
+  if (fields.has('HDistance') && fields.has('AvgSpeed') && (fields.has('AvgGrade') || fields.has('Elevation')))
+    return { sport:'running', subSport:'treadmill', label:'treadmill', badge:'run', garmin:'Treadmill Running', strava:'Run', filter:'fTreadmill' };
+
+  if (outdoor) {
+    if (name.includes('run') || name.includes('course'))
+      return { sport:'running', subSport:'generic', label:'running', badge:'outdoor', garmin:'Running', strava:'Run', filter:'fOutdoor' };
+    if (name.includes('cycl') || name.includes('bik') || name.includes('velo'))
+      return { sport:'cycling', subSport:'generic', label:'cycling', badge:'outdoor', garmin:'Cycling', strava:'Ride', filter:'fOutdoor' };
+    if (name.includes('walk') || name.includes('march'))
+      return { sport:'walking', subSport:'generic', label:'walking', badge:'outdoor', garmin:'Walking', strava:'Walk', filter:'fOutdoor' };
+    if (name.includes('hik') || name.includes('rando'))
+      return { sport:'hiking', subSport:'generic', label:'hiking', badge:'outdoor', garmin:'Hiking', strava:'Hike', filter:'fOutdoor' };
+    if (name.includes('row'))
+      return { sport:'rowing', subSport:'generic', label:'rowing_outdoor', badge:'outdoor', garmin:'Rowing', strava:'Row', filter:'fOutdoor' };
+    return { sport:'training', subSport:'cardioTraining', label:'outdoor_other', badge:'outdoor', garmin:'Cardio', strava:'Workout', filter:'fOutdoor' };
+  }
+
+  return { sport:'training', subSport:'cardioTraining', label:'cardio', badge:'cardio', garmin:'Cardio', strava:'Workout', filter:'fCardio' };
+}
+
+/* ================================================================
+   MyWellness helpers
+   ================================================================ */
+
+function parseMwDate(s) {
+  if (!s) return null;
+  return new Date(s.replace(/(\.\d{6})\d+/, '$1'));
+}
+
+function getField(act, name, def = null) {
+  const f = (act.performedData?.pr || []).find(p => p.n === name);
+  return f ? f.v : def;
+}
+
+/* ================================================================
+   FIT Activity builder
+   ================================================================ */
+
+const RECORD_INTERVAL_SEC = 60;
+
+function buildFitActivity(startDt, durationSec, calories, avgHr, maxHr, sport, subSport, avgPower, distanceM) {
+  const encoder = new Encoder();
+  const endDt = new Date(startDt.getTime() + durationSec * 1000);
+  const cal = Math.floor(calories || 0);
+  const dist = distanceM || 0;
+  const hH = avgHr && avgHr > 0;
+  const hM = maxHr && maxHr > 0;
+  const hP = avgPower && avgPower > 0;
+
+  encoder.onMesg(Profile.MesgNum.FILE_ID, { type: 'activity', manufacturer: 'development', product: 1, timeCreated: startDt });
+  encoder.onMesg(Profile.MesgNum.SPORT, { sport, subSport });
+  encoder.onMesg(Profile.MesgNum.EVENT, { timestamp: startDt, event: 'timer', eventType: 'start' });
+
+  const safeDuration = Math.max(durationSec, 1);
+  const numRecords = Math.max(Math.floor(safeDuration / RECORD_INTERVAL_SEC), 1);
+  const actualInterval = safeDuration / numRecords;
+
+  for (let i = 0; i <= numRecords; i++) {
+    const elapsed = Math.min(i * actualInterval, safeDuration);
+    const frac = elapsed / safeDuration;
+    const ts = new Date(startDt.getTime() + elapsed * 1000);
+    const rec = { timestamp: ts, distance: dist * frac };
+    if (hH) {
+      const hrVariation = Math.min(5, avgHr * 0.03);
+      const sinFrac = Math.sin(frac * Math.PI);
+      rec.heartRate = Math.floor(avgHr - hrVariation + 2 * hrVariation * sinFrac);
+    }
+    if (hP) rec.power = Math.floor(avgPower);
+    encoder.onMesg(Profile.MesgNum.RECORD, rec);
+  }
+
+  encoder.onMesg(Profile.MesgNum.EVENT, { timestamp: endDt, event: 'timer', eventType: 'stopAll' });
+
+  const lap = { timestamp: endDt, startTime: startDt, totalElapsedTime: durationSec, totalTimerTime: durationSec, totalCalories: cal, sport, subSport };
+  if (hH) lap.avgHeartRate = Math.floor(avgHr);
+  if (hM) lap.maxHeartRate = Math.floor(maxHr);
+  if (hP) lap.avgPower = Math.floor(avgPower);
+  if (dist > 0) lap.totalDistance = dist;
+  encoder.onMesg(Profile.MesgNum.LAP, lap);
+
+  const session = { timestamp: endDt, startTime: startDt, totalElapsedTime: durationSec, totalTimerTime: durationSec, totalCalories: cal, sport, subSport, firstLapIndex: 0, numLaps: 1, trigger: 'activityEnd' };
+  if (hH) session.avgHeartRate = Math.floor(avgHr);
+  if (hM) session.maxHeartRate = Math.floor(maxHr);
+  if (hP) session.avgPower = Math.floor(avgPower);
+  if (dist > 0) session.totalDistance = dist;
+  encoder.onMesg(Profile.MesgNum.SESSION, session);
+
+  encoder.onMesg(Profile.MesgNum.ACTIVITY, { timestamp: endDt, totalTimerTime: durationSec, numSessions: 1, type: 'manual' });
+
+  return encoder.close();
+}
+
+/* ================================================================
+   UI Logic
+   ================================================================ */
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const statusEl = document.getElementById('status');
+const resultsEl = document.getElementById('results');
+const downloadBtn = document.getElementById('downloadBtn');
+const filtersEl = document.getElementById('filters');
+let allActivities = [], outputZip = null;
+
+function log(m, c = 'info') {
+  statusEl.classList.add('visible');
+  statusEl.innerHTML += `<div class="line ${c}">${m}</div>`;
+  statusEl.scrollTop = statusEl.scrollHeight;
+}
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files[0]) processFile(e.target.files[0]); });
+document.querySelectorAll('.filters input').forEach(cb => cb.addEventListener('change', () => { if (allActivities.length) convert(allActivities); }));
+
+async function processFile(file) {
+  statusEl.innerHTML = ''; resultsEl.classList.remove('visible'); filtersEl.classList.remove('visible');
+  downloadBtn.disabled = true; outputZip = null; allActivities = [];
+  log(`${t('logFile')}: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+  let activities = [];
+
+  if (file.name.endsWith('.zip')) {
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const all = Object.keys(zip.files).filter(f => !zip.files[f].dir);
+      log(`${t('logZipContains')} ${all.length} ${t('logFiles')}`);
+      const jsons = all.filter(f => f.endsWith('.json'));
+      if (!jsons.length) { log(t('logNoJson'), 'err'); return; }
+      for (const fn of jsons) {
+        const txt = await zip.files[fn].async('string');
+        const short = fn.split('/').pop().replace(/-[0-9a-f-]{36}/g, '...');
+        try {
+          const d = JSON.parse(txt);
+          if (!Array.isArray(d) || !d.length) { log(`  ${short}: ${t('logEmpty')}`, 'warn'); continue; }
+          if (d[0].name && d[0].measuredOn) { log(`  ${short}: ${t('logBiometrics')}`, 'warn'); continue; }
+          if (d[0].on && d[0].performedData) { activities = activities.concat(d); log(`  ${short}: ${d.length} ${t('logIndoor')}`, 'ok'); continue; }
+          if (d[0].performedDate && d[0].physicalActivityData) {
+            activities = activities.concat(d.map(a => ({ ...a, on: a.performedDate, performedData: a.physicalActivityData, _outdoor: true })));
+            log(`  ${short}: ${d.length} ${t('logOutdoor')}`, 'ok'); continue;
+          }
+          log(`  ${short}: ${t('logUnknownSchema')}`, 'warn');
+        } catch (e) { log(`  ${short}: ${t('logJsonInvalid')}`, 'err'); }
+      }
+    } catch (e) { log(`${t('logZipError')}: ${e.message}`, 'err'); return; }
+  } else if (file.name.endsWith('.json')) {
+    try { const d = JSON.parse(await file.text()); activities = Array.isArray(d) ? d : [d]; log(`JSON: ${activities.length} ${t('logEntries')}`, 'ok'); }
+    catch (e) { log(`${t('logJsonError')}: ${e.message}`, 'err'); return; }
+  } else { log(t('logUnsupported'), 'err'); return; }
+
+  if (!activities.length) { log(t('logNoActivity'), 'warn'); return; }
+  allActivities = activities;
+  filtersEl.classList.add('visible');
+  convert(activities);
+}
+
+function convert(activities) {
+  resultsEl.classList.remove('visible'); downloadBtn.disabled = true;
+  outputZip = new JSZip();
+  const stats = {}; let converted = 0, filtered = 0, errors = 0; const notes = [];
+
+  for (const act of activities) {
+    try {
+      if (!act.on) { errors++; continue; }
+      const c = classify(act);
+      const cb = document.getElementById(c.filter);
+      if (cb && !cb.checked) { filtered++; continue; }
+      stats[c.label] = stats[c.label] || { count: 0, badge: c.badge, garmin: c.garmin, strava: c.strava, sport: c.sport, subSport: c.subSport };
+      stats[c.label].count++;
+      const startDt = parseMwDate(act.on);
+      if (!startDt || isNaN(startDt.getTime())) { errors++; continue; }
+      const dur = getField(act, 'Duration', 0);
+      const cal = getField(act, 'Calories', 0);
+      const avgHr = getField(act, 'AvgHr');
+      const maxHr = getField(act, 'MaxHr');
+      const avgPwr = getField(act, 'AvgPower');
+      const dist = getField(act, 'HDistance', 0);
+
+      const fitBytes = buildFitActivity(startDt, dur, cal, avgHr, maxHr, c.sport, c.subSport, avgPwr, dist);
+      const dtStr = act.on.substring(0, 19).replace(/:/g, '-').replace('T', '_');
+      const fname = `${dtStr}_${c.label}.fit`;
+      outputZip.file(fname, fitBytes);
+
+      const np = [`Technogym ${c.garmin}`];
+      const fl = getField(act, 'Floors'); if (fl) np.push(`Floors: ${Math.floor(fl)}`);
+      if (avgPwr) np.push(`Power: ${Math.floor(avgPwr)}W`);
+      const lv = getField(act, 'Level'); if (lv) np.push(`Level: ${lv.toFixed(1)}`);
+      const vo = getField(act, 'Vo2'); if (vo) np.push(`VO2: ${vo.toFixed(1)}`);
+      const wt = getField(act, 'TotalIsoWeight'); if (wt) np.push(`Weight: ${Math.floor(wt)}kg`);
+      if (dist > 0) np.push(`Dist: ${(dist / 1000).toFixed(2)}km`);
+      notes.push(`${fname} | ${np.join(' | ')}`);
+      converted++;
+    } catch (e) { errors++; log(`  Err: ${act.on} - ${e.message}`, 'err'); }
+  }
+  outputZip.file('_notes_technogym.txt', notes.join('\n'));
+  log(`\n${converted} ${t('logConverted')}, ${filtered} ${t('logFiltered')}, ${errors} ${t('logErrors')}`, converted > 0 ? 'ok' : 'err');
+
+  const grid = document.getElementById('statsGrid'); grid.innerHTML = '';
+  const tc = document.createElement('div'); tc.className = 'stat-card'; tc.dataset.stat = 'converted';
+  tc.innerHTML = `<div class="label">${t('converted')}</div><div class="value">${converted}</div>`; grid.appendChild(tc);
+  if (filtered > 0) {
+    const fc = document.createElement('div'); fc.className = 'stat-card'; fc.dataset.stat = 'filtered';
+    fc.innerHTML = `<div class="label">${t('filtered')}</div><div class="value" style="color:var(--muted)">${filtered}</div>`; grid.appendChild(fc);
+  }
+  for (const [l, s] of Object.entries(stats).sort((a, b) => b[1].count - a[1].count)) {
+    const cd = document.createElement('div'); cd.className = 'stat-card';
+    cd.innerHTML = `<div class="label">${s.garmin}</div><div class="value ${s.badge}">${s.count}</div>`; grid.appendChild(cd);
+  }
+
+  const tb = document.getElementById('mappingBody'); tb.innerHTML = '';
+  for (const [l, s] of Object.entries(stats).sort((a, b) => b[1].count - a[1].count)) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><span class="badge ${s.badge}">${l}</span></td><td style="font-family:'JetBrains Mono';font-size:0.8rem">${s.sport} / ${s.subSport}</td><td>${s.garmin}</td><td>${s.strava}</td><td style="font-weight:700">${s.count}</td>`;
+    tb.appendChild(tr);
+  }
+  resultsEl.classList.add('visible');
+  downloadBtn.disabled = converted === 0;
+}
+
+downloadBtn.addEventListener('click', async () => {
+  if (!outputZip) return;
+  downloadBtn.disabled = true; downloadBtn.textContent = t('generating');
+  const blob = await outputZip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `mywellness_garmin_fit_${new Date().toISOString().slice(0, 10)}.zip`;
+  a.click(); URL.revokeObjectURL(a.href);
+  downloadBtn.disabled = false; downloadBtn.innerHTML = t('downloadBtn');
+  log('\n' + t('logDownloaded'), 'ok');
+});
+</script>
+</body>
+</html>
