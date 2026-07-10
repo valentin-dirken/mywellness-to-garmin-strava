@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MyWellness &#8594; Garmin + Strava Converter</title>
 <style>
@@ -57,6 +58,8 @@
   .download-btn { display:inline-flex; align-items:center; gap:0.6rem; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:var(--bg); border:none; padding:0.9rem 2rem; border-radius:12px; font-family:'Outfit',sans-serif; font-weight:700; font-size:1rem; cursor:pointer; transition:transform 0.2s,box-shadow 0.2s; letter-spacing:-0.01em; }
   .download-btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(1,169,206,0.3); }
   .download-btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; box-shadow:none; }
+  .download-btn.json-btn { background:linear-gradient(135deg,#fc5200,#f59e0b); margin-left:0.6rem; }
+  .download-btn.json-btn:hover { box-shadow:0 8px 24px rgba(252,82,0,0.3); }
   .mapping-table { width:100%; margin-top:1.5rem; border-collapse:collapse; font-size:0.85rem; }
   .mapping-table th { text-align:left; color:var(--muted); font-weight:500; padding:0.5rem 0.8rem; border-bottom:1px solid var(--border); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em; }
   .mapping-table td { padding:0.5rem 0.8rem; border-bottom:1px solid rgba(30,41,59,0.5); }
@@ -72,6 +75,13 @@
   .footer { margin-top:3rem; padding-top:1.5rem; border-top:1px solid var(--border); color:var(--muted); font-size:0.8rem; text-align:center; line-height:1.7; }
   .footer a { color:var(--accent); text-decoration:none; }
   .warning-box { background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2); border-radius:12px; padding:1rem 1.2rem; margin-top:1rem; font-size:0.85rem; color:var(--warn); }
+  .exmap-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+  .exmap-table td { padding:0.4rem 0.6rem; border-bottom:1px solid rgba(30,41,59,0.5); vertical-align:middle; }
+  .exmap-table .exname { font-weight:500; }
+  .exmap-table .exsum { color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:0.72rem; white-space:nowrap; }
+  .exmap-table tr.unmapped .exname { color:var(--warn); }
+  .exmap-table select { background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-family:'Outfit',sans-serif; font-size:0.8rem; cursor:pointer; min-width:170px; }
+  .exmap-table select:focus { outline:none; border-color:var(--accent); }
 </style>
 </head>
 <body>
@@ -114,11 +124,14 @@
     </div>
   </div>
 
+  <div class="filters" id="exmap"></div>
+
   <div class="status" id="status"></div>
 
   <div class="results" id="results">
     <div class="results-grid" id="statsGrid"></div>
     <button class="download-btn" id="downloadBtn" disabled></button>
+    <button class="download-btn json-btn" id="downloadJsonBtn" style="display:none"></button>
     <div class="warning-box" id="warningBox"></div>
     <table class="mapping-table" id="mappingTable">
       <thead><tr><th id="thType"></th><th id="thFit"></th><th>Garmin Connect</th><th>Strava</th><th>#</th></tr></thead>
@@ -143,7 +156,11 @@ const T = {
     dropHint: 'mywellness.com \u2192 Settings \u2192 Data Export \u2192 Download',
     filtersTitle: 'Filters (uncheck to exclude)',
     filterHint: '(off = avoids duplicates with your Garmin watch)',
+    exmapTitle: 'Strength exercise types (shown in Garmin)',
+    exmapHint: 'Assign each exercise a type — remembered in your browser. Unmapped = a generic set.',
     downloadBtn: '\u2B07 Download FIT files',
+    downloadJsonBtn: '\u2B07 Strength JSON (Strava)',
+    logJsonDownloaded: 'Strength JSON downloaded. \u2192 strava.com/upload/select (drop the .json)',
     generating: 'Generating...',
     thType: 'Technogym Type',
     thFit: 'Sport / SubSport (FIT SDK)',
@@ -184,7 +201,11 @@ const T = {
     dropHint: 'mywellness.com \u2192 Settings \u2192 Data Export \u2192 Download',
     filtersTitle: 'Filtres (decochez pour exclure)',
     filterHint: '(off = evite les doublons avec votre montre Garmin)',
+    exmapTitle: 'Types d\'exercices de force (affiches dans Garmin)',
+    exmapHint: 'Attribuez un type a chaque exercice — memorise dans votre navigateur. Non defini = serie generique.',
     downloadBtn: '\u2B07 Telecharger les fichiers FIT',
+    downloadJsonBtn: '\u2B07 JSON Musculation (Strava)',
+    logJsonDownloaded: 'JSON musculation telecharge. \u2192 strava.com/upload/select (deposez le .json)',
     generating: 'Generation...',
     thType: 'Type Technogym',
     thFit: 'Sport / SubSport (FIT SDK)',
@@ -225,7 +246,11 @@ const T = {
     dropHint: 'mywellness.com \u2192 Settings \u2192 Data Export \u2192 Download',
     filtersTitle: 'Filters (uitvinken om uit te sluiten)',
     filterHint: '(uit = voorkomt duplicaten met je Garmin-horloge)',
+    exmapTitle: 'Krachtoefening-types (zichtbaar in Garmin)',
+    exmapHint: 'Geef elke oefening een type — onthouden in je browser. Niet ingesteld = algemene set.',
     downloadBtn: '\u2B07 FIT-bestanden downloaden',
+    downloadJsonBtn: '\u2B07 Kracht-JSON (Strava)',
+    logJsonDownloaded: 'Kracht-JSON gedownload. \u2192 strava.com/upload/select (sleep het .json-bestand)',
     generating: 'Genereren...',
     thType: 'Technogym Type',
     thFit: 'Sport / SubSport (FIT SDK)',
@@ -266,7 +291,11 @@ const T = {
     dropHint: 'mywellness.com \u2192 Settings \u2192 Data Export \u2192 Download',
     filtersTitle: 'Filter (deaktivieren zum Ausschliessen)',
     filterHint: '(aus = vermeidet Duplikate mit Ihrer Garmin-Uhr)',
+    exmapTitle: 'Krafttraining-Ubungstypen (in Garmin sichtbar)',
+    exmapHint: 'Weisen Sie jeder Ubung einen Typ zu — im Browser gespeichert. Nicht zugewiesen = generischer Satz.',
     downloadBtn: '\u2B07 FIT-Dateien herunterladen',
+    downloadJsonBtn: '\u2B07 Kraft-JSON (Strava)',
+    logJsonDownloaded: 'Kraft-JSON heruntergeladen. \u2192 strava.com/upload/select (.json ablegen)',
     generating: 'Wird generiert...',
     thType: 'Technogym Typ',
     thFit: 'Sport / SubSport (FIT SDK)',
@@ -315,6 +344,7 @@ function setLang(l) {
   document.getElementById('filtersTitle').textContent = t('filtersTitle');
   document.getElementById('filterHint').textContent = t('filterHint');
   document.getElementById('downloadBtn').innerHTML = t('downloadBtn');
+  document.getElementById('downloadJsonBtn').innerHTML = t('downloadJsonBtn');
   document.getElementById('thType').textContent = t('thType');
   document.getElementById('thFit').textContent = t('thFit');
   document.getElementById('warningBox').innerHTML = `<strong>${t('warningGarmin')}</strong> : ${t('warningGarminDesc')}<br><strong>${t('warningStrava')}</strong> : ${t('warningStravaDesc')}<br><span style="font-size:0.78rem;opacity:0.85">${t('warningNote')}</span>`;
@@ -339,6 +369,7 @@ import { Encoder, Profile } from 'https://cdn.jsdelivr.net/npm/@garmin/fitsdk@21
 
 function classify(act) {
   const fields = new Set((act.performedData?.pr || []).map(p => p.n));
+  const hasSets = (act.performedData?.st || []).length > 0;
   const name = (act.activityName || '').toLowerCase().trim();
   const outdoor = !!act._outdoor;
 
@@ -374,7 +405,9 @@ function classify(act) {
   // === INDOOR activities: classify by equipment field signature ===
   if (fields.has('Floors'))
     return { sport:'fitnessEquipment', subSport:'stairClimbing', label:'stair_climbing', badge:'climb', garmin:'Stair Climbing', strava:'Stair Stepper', filter:'fClimb' };
-  if (fields.has('TotalIsoWeight') || fields.has('Rm1'))
+  // Strength: weighted machines (TotalIsoWeight/Rm1) OR any exercise logged as
+  // sets/reps (`st`) — this covers bodyweight moves like push-ups that carry no weight.
+  if (fields.has('TotalIsoWeight') || fields.has('Rm1') || hasSets)
     return { sport:'training', subSport:'strengthTraining', label:'strength_training', badge:'strength', garmin:'Strength Training', strava:'Weight Training', filter:'fStrength' };
   if (fields.has('RowingDistance'))
     return { sport:'fitnessEquipment', subSport:'indoorRowing', label:'indoor_rowing', badge:'row', garmin:'Indoor Rowing', strava:'Row', filter:'fRowing' };
@@ -399,9 +432,127 @@ function parseMwDate(s) {
   return new Date(s.replace(/(\.\d{6})\d+/, '$1'));
 }
 
-function getField(act, name, def = null) {
-  const f = (act.performedData?.pr || []).find(p => p.n === name);
+// Read a value from a MyWellness `pr` (parameter) array — used for both the
+// top-level `performedData.pr` aggregates and each set's `st[i].pr`.
+function prVal(prArr, name, def = null) {
+  const f = (prArr || []).find(p => p.n === name);
   return f ? f.v : def;
+}
+
+function getField(act, name, def = null) {
+  return prVal(act.performedData?.pr, name, def);
+}
+
+/* ================================================================
+   Exercise-type mapping (phId -> Strava exercise_type -> FIT category)
+   ----------------------------------------------------------------
+   MyWellness identifies each strength exercise only by an opaque
+   `phId` GUID (the Technogym exercise-catalog id); the export carries
+   NO exercise name. We resolve phId -> exercise name + Strava
+   `exercise_type` from a catalog harvested via mywellness.com's
+   SearchExercisesByName endpoint (~3140 exercises) and mapped offline.
+
+   The Strava exercise_type is the mapping BASE (it has ~400 values, far
+   more than FIT's 33 coarse categories). Strava renders the named set
+   directly; the FIT `exercise_category` written into FIT SET messages
+   (what Garmin renders) is DERIVED from the type via STRAVA_TO_CAT.
+   ================================================================ */
+
+// Strava strength exercise_type enum, grouped by FIT exercise_category.
+// Each group: [fitCatNum, label, [types...]] — first type is the *_GENERIC.
+const STRAVA_GROUPS = [
+  [0,"Bench Press",["BENCH_PRESS_GENERIC","BARBELL_BENCH_PRESS","DUMBBELL_BENCH_PRESS","INCLINE_DUMBBELL_BENCH_PRESS","INCLINE_BARBELL_BENCH_PRESS","CLOSE_GRIP_BARBELL_BENCH_PRESS","WIDE_GRIP_BARBELL_BENCH_PRESS","SINGLE_ARM_CABLE_CHEST_PRESS","DECLINE_DUMBBELL_BENCH_PRESS","NEUTRAL_GRIP_DUMBBELL_BENCH_PRESS","NEUTRAL_GRIP_DUMBBELL_INCLINE_BENCH_PRESS","FLOOR_BENCH_PRESS","CHEST_PRESS","DUMBBELL_FLOOR_PRESS","BARBELL_FEET_UP_BENCH_PRESS","MACHINE_DECLINE_BENCH_PRESS","SMITH_MACHINE_INCLINE_BENCH_PRESS","MACHINE_INCLINE_CHEST_PRESS","MACHINE_CHEST_PRESS","MACHINE_ISOLATERAL_CHEST_PRESS","DUMBBELL_SQUEEZE_PRESS","PLATE_PRESS","SVEND_PRESS_PLATE_SQUEEZE"]],
+  [1,"Calf Raise",["CALF_RAISE_GENERIC","STANDING_CALF_RAISE","SEATED_CALF_RAISE","SINGLE_LEG_STANDING_CALF_RAISE","WALKING_CALF_RAISES","BENT_KNEE_CALF_RAISE","DOUBLE_LEG_CALF_RAISE_ON_STEP","FLOATING_HEEL_DROP","MACHINE_CALF_EXTENSION","MACHINE_CALF_PRESS"]],
+  [2,"Cardio",["CARDIO_GENERIC","JUMP_ROPE","JUMPING_JACKS","CARDIO_CORE_CRAWL","SKI_MOGULS","BATTLE_ROPES","ROWING_MACHINE","SLED_PUSH","HIGH_KNEES"]],
+  [3,"Carry",["CARRY_GENERIC","BAR_HOLDS","FARMERS_WALK","OVERHEAD_CARRY","FARMERS_CARRY","DEAD_HANG","SUITCASE_CARRY"]],
+  [4,"Chop",["CHOP_GENERIC","CROSS_CHOP_TO_KNEE","HALF_KNEELING_ROTATIONAL_CHOP","STANDING_ROTATIONAL_CHOP","CABLE_WOODCHOP","DOWN_TO_UP_CABLE_TWIST","UP_TO_DOWN_CABLE_TWIST"]],
+  [5,"Core",["CORE_GENERIC","SWIMMING","LOWER_LIFT","RUSSIAN_TWIST","BARBELL_ROLLOUT","SIDE_BEND","HALF_TURKISH_GET_UP","MODIFIED_FRONT_LEVER","GHD_BACK_EXTENSIONS","OVERHEAD_WALK","CAT_COW","THE_HUNDRED","CABLE_CORE_PRESS","CABLE_SIDE_BEND","KETTLEBELL_WINDMILL","SWISS_BALL_JACKKNIFE","BICYCLE_CRUNCH","HOLLOW_ROCK","LEG_EXTENSIONS","REVERSE_CRUNCH","HANGING_KNEE_RAISE","CABLE_CRUNCH","CRUNCH","TURKISH_GET_UP","DEADBUG","STRAIGHT_LEG_RAISE","FIGURE_OF_8S","SWISSBALL_STIR_POT","CRUNCH_AND_PRESS","DIAGONAL_TOE_TAP","TRAVELLING_PRESS_UP_WALK_OUT","TOE_SCRUNCHES","BIRD_DOG","HIP_DROP","BANDED_DEADBUG","STANDING_MARCH","BICYCLE_CRUNCH_RAISED_LEGS","DECLINE_CRUNCH","WEIGHTED_DECLINE_CRUNCH","DRAGON_FLAG","ELBOW_TO_KNEE","HEEL_TAPS","LYING_KNEE_RAISE","OBLIQUE_CRUNCH","FRONT_LEVER_HOLD","FRONT_LEVER_RAISE","PALLOF_PRESS","AB_WHEEL_ROLLOUT","AB_CRUNCH_MACHINE","MEDICINE_BALL_CRUNCH"]],
+  [7,"Curl",["CURL_GENERIC","DUMBBELL_HAMMER_CURL","BARBELL_BICEPS_CURL","CABLE_BICEPS_CURL","BARBELL_REVERSE_WRIST_CURL","BARBELL_WRIST_CURL","CABLE_HAMMER_CURL","INCLINE_DUMBBELL_BICEPS_CURL","STANDING_DUMBBELL_BICEPS_CURL","EZ_BAR_PREACHER_CURL","STANDING_EZ_BAR_BICEPS_CURL","KETTLEBELL_BICEPS_CURL","DUMBBELL_REVERSE_WRIST_CURL","BANDED_HAMSTRING_CURL","DUMBBELL_WRIST_CURL","TWENTY_ONES_BICEP_CURL","MACHINE_BICEP_CURL","SUSPENSION_BICEP_CURL","CONCENTRATION_CURL","CROSS_BODY_HAMMER_CURL","DRAG_CURL","CABLE_OVERHEAD_CURL","DUMBBELL_PINWHEEL_CURL","PLATE_CURL","BARBELL_REVERSE_CURL","ROPE_CABLE_CURL","DUMBBELL_ZOTTMAN_CURL","BARBELL_BEHIND_THE_BACK_BICEP_WRIST_CURL","SEATED_PALMS_UP_WRIST_CURL","BARBELL_SEATED_WRIST_EXTENSION","WRIST_ROLLER","PREACHER_CURL_MACHINE","SPIDER_CURL","CABLE_CURL","REVERSE_CABLE_CURLS"]],
+  [8,"Deadlift",["DEADLIFT_GENERIC","BARBELL_DEADLIFT","DUMBBELL_DEADLIFT","BARBELL_STRAIGHT_LEG_DEADLIFT","SUMO_DEADLIFT","RACK_PULL","TRAP_BAR_DEADLIFT","SINGLE_LEG_STRAIGHT_LEG_DEADLIFT","STRAIGHT_LEG_DEADLIFT","KB_STRAIGHT_LEG_DEADLIFT","SL_DB_RDL_KNEE_DRIVE","CONVENTIONAL_DEADLIFTS","DUMBBELL_ROMANIAN_DEADLIFTS","ROMANIAN_DEADLIFTS","SINGLE_LEG_ROMANIAN_DEADLIFTS","STAGGERED_RDLS","CABLE_RDL","BARBELL_ROMANIAN_DEADLIFT"]],
+  [9,"Flye",["FLYE_GENERIC","DUMBBELL_FLYE","CABLE_CROSSOVER","INCLINE_DUMBBELL_FLYE","KETTLEBELL_FLYE","DUMBBELL_CHEST_FLY","BAND_CHEST_FLY","SUSPENSION_CHEST_FLY","PEC_DECK_BUTTERFLY","LOW_CABLE_FLY_CROSSOVERS","INCLINE_REVERSE_FLY","INCLINE_CABLE_FLY","DUMBBELL_REAR_DELT_FLY"]],
+  [10,"Hip Raise",["HIP_RAISE_GENERIC","BARBELL_HIP_THRUST_ON_FLOOR","CLAMS","SINGLE_LEG_HIP_RAISE","BARBELL_HIP_THRUST_WITH_BENCH","HIP_RAISE","ABDUCTOR_SIDE_LEG_RAISE","STEP_DOWN","RAISED_LEG_HIP_THRUST","SINGLE_LEG_GLUTE_BRIDGE","STAGGERED_HIP_THRUST","BARBELL_HIP_THRUST","GLUTE_BRIDGE","LATERAL_WALK","THRUSTER","HIP_THRUST","SL_ISO_HAMSTRING_HOLD","GLUTE_BRIDGE_HAM_WALKOUT","BARBELL_PARTIAL_GLUTE_BRIDGE","DUMBBELL_SINGLE_LEG_HIP_THRUST","MACHINE_GLUTE_KICKBACK","GLUTE_KICKBACK_ON_FLOOR","DUMBBELL_HIP_THRUST","PLATE_HIP_THRUST","BARBELL_SINGLE_LEG_HIP_THRUST"]],
+  [11,"Hip Stability",["HIP_STABILITY_GENERIC","FIRE_HYDRANT_KICKS","PRONE_HIP_INTERNAL_ROTATION","QUADRUPED","SIDE_LYING_LEG_RAISE","STANDING_ADDUCTION","STANDING_HIP_ABDUCTION","LATERAL_WALKS_WITH_BAND_AT_ANKLES","FIRE_HYDRANTS","MACHINE_HIP_ABDUCTION","MACHINE_HIP_ADDUCTION"]],
+  [12,"Hip Swing",["HIP_SWING_GENERIC","KETTLEBELL_SWING","STEP_OUT_SWING","SINGLE_ARM_DUMBBELL_SWING","SINGLE_ARM_KETTLEBELL_SWING"]],
+  [13,"Hyperextension",["HYPEREXTENSION_GENERIC","BACK_EXTENSION_WITH_OPPOSITE_ARM_AND_LEG_REACH","BACK_EXTENSION","SUPERMAN_FROM_FLOOR","MACHINE_BACK_EXTENSION","REVERSE_HYPER"]],
+  [14,"Lateral Raise",["LATERAL_RAISE_GENERIC","FRONT_RAISE","BAR_MUSCLE_UP","MUSCLE_UP","WALL_SLIDE","FORTY_FIVE_DEGREE_CABLE_EXTERNAL_ROTATION","RING_DIP","RING_MUSCLE_UP","ROPE_CLIMB","BAND_PULLAPARTS","OVERHEAD_PLATE_RAISE","PLATE_FRONT_RAISE","CABLE_REAR_DELT_REVERSE_FLY","MACHINE_REAR_DELT_REVERSE_FLY","KETTLEBELL_AROUND_THE_WORLD","KETTLEBELL_HALO","HANDSTAND_HOLD","CABLE_LATERAL_RAISE","CABLE_REAR_DELT_FLY"]],
+  [15,"Leg Curl",["LEG_CURL_GENERIC","GOOD_MORNING","SLIDING_LEG_CURL","NORDIC_CURL","GLUTE_HAM_RAISE","MACHINE_LEG_CURL_SEATED","CABLE_GOOD_MORNING","STANDING_LEG_CURL"]],
+  [16,"Leg Raise",["LEG_RAISE_GENERIC","HANGING_LEG_RAISE","LYING_STRAIGHT_LEG_RAISE","KNEE_DRIVE","STEP_UPS","LEG_RAISE_PARALLEL_BARS"]],
+  [17,"Lunge",["LUNGE_GENERIC","WALKING_LUNGE","BARBELL_REVERSE_LUNGE","BARBELL_BULGARIAN_SPLIT_SQUAT","BARBELL_LUNGE","SIDE_LUNGE","OVERHEAD_LUNGE","REVERSE_LUNGE","STATIC_LUNGE","BARBELL_OVERHEAD_LUNGE","REAR_LEG_RAISED_LUNGE","FRONT_LEG_RAISED_LUNGE","BANDED_SIDE_LUNGE","LUNGE_HOLD_CALF_RAISE","LUNGE_AND_PRESS","DUMBBELL_WALKING_LUNGES","LATERAL_LUNGE","SMITH_MACHINE_LUNGE","BARBELL_SPLIT_SQUAT","SKATER_LUNGE"]],
+  [18,"Olympic Lift",["OLYMPIC_LIFT_GENERIC","CLEAN","BARBELL_HANG_POWER_CLEAN","BARBELL_HANG_SQUAT_CLEAN","BARBELL_POWER_CLEAN","BARBELL_POWER_SNATCH","BARBELL_SQUAT_CLEAN","BARBELL_HANG_POWER_SNATCH","BARBELL_HANG_PULL","BARBELL_HIGH_PULL","BARBELL_SNATCH","BARBELL_SPLIT_JERK","CLEAN_AND_JERK","PUSH_JERK","SINGLE_ARM_HANG_SNATCH","SPLIT_JERK","SQUAT_CLEAN_AND_JERK","DUMBBELL_CLEAN","DUMBBELL_HANG_PULL","ONE_HAND_DUMBBELL_SPLIT_SNATCH","SINGLE_ARM_DUMBBELL_SNATCH","SINGLE_ARM_KETTLEBELL_SNATCH","SINGLE_ARM_CLEAN_AND_PRESS","SINGLE_ARM_SNATCH","DOUBLE_ARM_CLEAN_AND_PRESS","DOUBLE_ARM_SNATCH","KETTLEBELL_CLEAN"]],
+  [19,"Plank",["PLANK_GENERIC","MOUNTAIN_CLIMBER","PLANK_WITH_ARM_RAISE","CROSS_BODY_MOUNTAIN_CLIMBER","BEAR_CRAWL","SIDE_PLANK","SIDEPLANK_HIP_FLEXORS","SIDE_PLANK_LEG_RAISE","SL_COPENHAGEN_PLANK","LL_COPENHAGEN_PLANK","PLANK_TWIST","PLANK_PULL_THROUGH","PLANK_ON_SWISSBALL","SWISSBALL_HIGH_PLANK","PLANK_HOLD","SIDE_PLANK_HOLD"]],
+  [20,"Plyo",["PLYO_GENERIC","BODY_WEIGHT_JUMP_SQUAT","ALTERNATING_JUMP_LUNGE","CROSS_KNEE_STRIKE","DEPTH_JUMP","LATERAL_LEAP_AND_HOP","MEDICINE_BALL_OVERHEAD_THROWS","MEDICINE_BALL_SLAM","BOX_JUMP","FULL_STAR_JUMPS","POGO_JUMPS","HURDLE_HOPS","SL_BOX_JUMP","DL_SKIPPING","BOX_JUMP_DOWN_TUCK_JUMP","SEATED_START_BOX_JUMP","BALL_SLAMS","LATERAL_BOX_JUMP","BOX_JUMP_DOWN","BROAD_JUMP","BOX_JUMP_OVER","LATERAL_MEDICINE_BALL_SLAM"]],
+  [21,"Pull Up",["PULL_UP_GENERIC","LAT_PULLDOWN","CLOSE_GRIP_CHIN_UP","STRAIGHT_ARM_PULLDOWN","ASSISTED_CHIN_UP","WEIGHTED_CHIN_UP","NEGATIVE_PULL_UP","RING_PULL_UP","GIRONDA_STERNUM_PULL_UP","WIDE_PULL_UP","CABLE_LAT_PULLDOWN_CLOSE_GRIP","SINGLE_ARM_LAT_PULLDOWN","UNDERHAND_LAT_PULLDOWN","NEUTRAL_GRIP_LAT_PULLDOWN","NEUTRAL_GRIP_PULL_UP"]],
+  [22,"Push Up",["PUSH_UP_GENERIC","DECLINE_PUSH_UP","DIAMOND_PUSH_UP","HANDSTAND_PUSH_UP","INCLINE_PUSH_UP","ONE_ARM_PUSH_UP","MILITARY_PRESS_UP","MODIFIED_PUSH_UP","PLANK_TO_PUSH_UP","CLAP_PUSH_UPS"]],
+  [23,"Row",["ROW_GENERIC","SEATED_CABLE_ROW","DUMBBELL_ROW","FACE_PULL","RENEGADE_ROW","REVERSE_GRIP_BARBELL_ROW","T_BAR_ROW","KETTLEBELL_ROW","ROLL_DOWN","BENT_OVER_ROW","SWISSBALL_BACK_EXTENSION","SUPERMAN","BENT_OVER_BARBELL_ROW","BENT_OVER_DUMBBELL_ROW","MACHINE_ISOLATERAL_HIGH_ROW","LANDMINE_ROW","SUSPENSION_LOW_ROW","MACHINE_SEATED_ROW","DUMBBELL_PULLOVER","MACHINE_PULLOVER","MACHINE_CHEST_SUPPORTED_ROW","SEAL_ROW","MEADOWS_ROW","SMITH_MACHINE_ROW","CHEST_SUPPORTED_ROW"]],
+  [24,"Shoulder Press",["SHOULDER_PRESS_GENERIC","OVERHEAD_BARBELL_PRESS","BARBELL_PUSH_PRESS","ARNOLD_PRESS","OVERHEAD_DUMBBELL_PRESS","STANDING_SINGLE_ARM_SHOULDER_PRESS","FLOOR_SEATED_SINGLE_ARM_SHOULDER_PRESS","STANDING_DOUBLE_ARM_SHOULDER_PRESS","FLOOR_SEATED_DOUBLE_ARM_SHOULDER_PRESS","PUSH_PRESS","STANDING_BARBELL_PRESS","SEATED_BARBELL_PRESS","BARBELL_BEHIND_THE_HEAD_SHOULDER_PRESS","PRESS_UP_POSITION_SHOULDER_TAP","SHOULDER_FOCUSED_PRESS_UP","DUMBBELL_PUSH_PRESS","SMITH_MACHINE_OVERHEAD_PRESS","MACHINE_SEATED_SHOULDER_PRESS","LANDMINE_SQUAT_AND_PRESS","SEATED_DUMBBELL_SHOULDER_PRESS"]],
+  [25,"Shoulder Stability",["SHOULDER_STABILITY_GENERIC","FLOOR_I_RAISE","FLOOR_T_RAISE","FLOOR_Y_RAISE","INCLINE_L_RAISE","INCLINE_W_RAISE","CABLE_PULL_APART"]],
+  [26,"Shrug",["SHRUG_GENERIC","BARBELL_SHRUG","BARBELL_UPRIGHT_ROW","SCAPULAR_RETRACTION","SERRATUS_SHRUG","JUMP_SHRUG","CABLE_UPRIGHT_ROW"]],
+  [27,"Sit Up",["SIT_UP_GENERIC","V_UP","THE_TEASER","PRESS_UP_POSITION_DIAGONAL_TOE_TAP","PRESS_UP_POSITION_WITH_SINGLE_ARM_EXTENSION","PRESS_UP_POSITION_WALK_OUT"]],
+  [28,"Squat",["SQUAT_GENERIC","BARBELL_BACK_SQUAT","GOBLET_SQUAT","LEG_PRESS","BARBELL_FRONT_SQUAT","BARBELL_SQUAT_SNATCH","BARBELL_STEP_UP","OVERHEAD_SQUAT","STEP_UP","PISTOL_SQUAT","SUMO_SQUAT","THRUSTERS","ZERCHER_SQUAT","KETTLEBELL_SQUAT","BARBELL_SQUAT","LOPSIDED_SQUAT","KB_FRONT_RACKED_SQUAT","STEP_UP_AND_KNEE_DRIVE","QUAD","SQUAT_TO_CALF_RAISE","DUMBBELL_BULGARIAN_SPLIT_SQUATS","DUMBBELL_GOBLET_SQUATS","GOBLET_SQUATS","WALL_SIT","BARBELL_BOX_SQUAT","ASSISTED_PISTOL_SQUATS","MACHINE_LEG_PRESS","MACHINE_HACK_SQUAT","MACHINE_SINGLE_LEG_PRESS","BELT_SQUAT","SMITH_MACHINE_SQUAT","MACHINE_LEG_EXTENSION","AIR_SQUAT","COSSACK_SQUAT"]],
+  [29,"Total Body",["TOTAL_BODY_GENERIC","BURPEE","SQUAT_THRUSTS","STANDING_T_ROTATION_BALANCE","BURPEE_OVER_THE_BAR"]],
+  [30,"Triceps Extension",["TRICEPS_EXTENSION_GENERIC","TRICEPS_PRESSDOWN","SKULL_CRUSHER","BENCH_DIP","DUMBBELL_KICKBACK","BODY_WEIGHT_DIP","OVERHEAD_DUMBBELL_TRICEPS_EXTENSION","SEATED_BARBELL_OVERHEAD_TRICEPS_EXTENSION","TRICEP_DIP","CABLE_OVERHEAD_TRICEPS_EXTENSION","FLOOR_TRICEPS_DIP","CHEST_DIP","ASSISTED_CHEST_DIP","WEIGHTED_CHEST_DIP","SEATED_DIP_MACHINE","SEATED_TRICEPS_PRESS","DUMBBELL_SINGLE_ARM_TRICEP_EXTENSION","CABLE_SINGLE_ARM_TRICEPS_PUSHDOWN","DUMBBELL_SKULLCRUSHER","DUMBBELL_WIDEELBOW_TRICEPS_PRESS","MACHINE_TRICEP_EXTENSION","CABLE_TRICEPS_PUSHDOWN"]],
+  [31,"Warm Up",["WARM_UP_GENERIC","OPPOSITE_ARM_AND_LEG_BALANCE","WALKOUT","QUADRUPED_ROCKING","NECK_TILTS","ANKLE_CIRCLES","ARM_CIRCLES","FORWARD_AND_BACKWARD_LEG_SWINGS","LATERAL_DUCK_UNDER","REACH_ROLL_AND_LIFT","SLEEPER_STRETCH","THORACIC_ROTATION","WALKING_HIGH_KICKS","WALKING_HIGH_KNEES","WALKING_KNEE_HUGS","INVERTED_HAMSTRING_STRETCH","STRETCH","HAMSTRING_WALKOUT","HEEL_WALKS","TOE_WALKS","SIDE_LEG_SWINGS"]],
+];
+const STRAVA_TO_CAT = {};   // exercise_type -> FIT exercise_category number
+for (const g of STRAVA_GROUPS) for (const ty of g[2]) STRAVA_TO_CAT[ty] = g[0];
+const STRAVA_FALLBACK = 'TOTAL_BODY_GENERIC';
+
+// "PUSH_UP_GENERIC" -> "Push Up Generic" for dropdown labels.
+function humanizeType(ty) {
+  return ty.split('_').map(w => w ? w[0] + w.slice(1).toLowerCase() : w).join(' ');
+}
+// Pre-built <optgroup> option list for the exercise-type dropdown (static).
+const EX_OPTIONS_HTML = STRAVA_GROUPS.map(g =>
+  `<optgroup label="${g[1]}">` +
+  g[2].map(ty => `<option value="${ty}">${humanizeType(ty)}</option>`).join('') +
+  `</optgroup>`).join('');
+
+// phId -> [name, exercise_type] catalog. Nothing is pre-bundled: every exercise
+// starts unmapped and you label it once via the dropdown (remembered in
+// localStorage). SEED_CATALOG can hold phId -> [name, type] built-in defaults.
+const SEED_CATALOG = {};
+let catalog = SEED_CATALOG;
+const catalogReady = Promise.resolve();
+
+// User overrides (phId -> exercise_type), persisted across sessions.
+function loadUserExMap() {
+  try { return JSON.parse(localStorage.getItem('mw_exmap_v2') || '{}'); }
+  catch { return {}; }
+}
+let userExMap = loadUserExMap();
+
+// Effective mapping for a phId: user override wins over the catalog.
+// Returns { name, type } or null when the phId is unknown and unmapped.
+function exFor(phId) {
+  if (!phId) return null;
+  const userType = userExMap[phId];
+  const entry = catalog[phId];              // [name, type] | undefined
+  if (userType) return { name: entry ? entry[0] : humanizeType(userType), type: userType };
+  if (entry) return { name: entry[0], type: entry[1] };
+  return null;
+}
+function setUserEx(phId, type) {
+  if (!type) delete userExMap[phId];
+  else userExMap[phId] = type;
+  try { localStorage.setItem('mw_exmap_v2', JSON.stringify(userExMap)); } catch {}
+}
+
+// Strava exercise_type for a phId (always valid for the JSON upload).
+function stravaExerciseType(phId) {
+  const ex = exFor(phId);
+  return (ex && ex.type) || STRAVA_FALLBACK;
+}
+// FIT exercise_category for a phId, or null when truly unmapped (FIT
+// categories are optional, so an unknown exercise is a generic set).
+function fitCategoryFor(phId) {
+  const ex = exFor(phId);
+  return ex && ex.type != null ? (STRAVA_TO_CAT[ex.type] ?? null) : null;
+}
+
+// Local UTC offset (seconds) parsed from a MyWellness timestamp's "+02:00" tail.
+function utcOffsetSeconds(onStr) {
+  const m = /([+-])(\d{2}):(\d{2})$/.exec(onStr || '');
+  return m ? (m[1] === '-' ? -1 : 1) * (parseInt(m[2], 10) * 3600 + parseInt(m[3], 10) * 60) : 0;
 }
 
 /* ================================================================
@@ -409,6 +560,9 @@ function getField(act, name, def = null) {
    ================================================================ */
 
 const RECORD_INTERVAL_SEC = 60;
+// Consecutive strength exercises started within this gap belong to one training
+// session and are combined into a single FIT file.
+const SESSION_GAP_SEC = 90 * 60;
 
 function buildFitActivity(startDt, durationSec, calories, avgHr, maxHr, sport, subSport, avgPower, distanceM) {
   const encoder = new Encoder();
@@ -463,6 +617,148 @@ function buildFitActivity(startDt, durationSec, calories, avgHr, maxHr, sport, s
 }
 
 /* ================================================================
+   Strength session builder — combines several MyWellness exercise
+   entries (each an exercise with its sets) into ONE FIT strength
+   activity: one lap per exercise, every set as a FIT SET message.
+   ================================================================ */
+function buildStrengthSession(entries) {
+  const sport = 'training', subSport = 'strengthTraining';
+  const parts = entries.map(act => ({
+    startDt: parseMwDate(act.on),
+    dur: Math.max(getField(act, 'Duration', 0) || 0, 0),
+    cal: getField(act, 'Calories', 0) || 0,
+    avgHr: getField(act, 'AvgHr'),
+    maxHr: getField(act, 'MaxHr'),
+    sets: act.performedData?.st || [],
+    cat: fitCategoryFor(act.phId),
+  })).filter(p => p.startDt && !isNaN(p.startDt.getTime()));
+  if (!parts.length) throw new Error('empty strength session');
+
+  const encoder = new Encoder();
+  const sessionStart = parts[0].startDt;
+  encoder.onMesg(Profile.MesgNum.FILE_ID, { type: 'activity', manufacturer: 'development', product: 1, timeCreated: sessionStart });
+  encoder.onMesg(Profile.MesgNum.SPORT, { sport, subSport });
+  encoder.onMesg(Profile.MesgNum.EVENT, { timestamp: sessionStart, event: 'timer', eventType: 'start' });
+
+  let mi = 0, lapIndex = 0, sessionEndMs = sessionStart.getTime();
+  let totalCal = 0, totalTimer = 0, hrWeighted = 0, hrDur = 0, maxHrAll = 0;
+
+  for (const p of parts) {
+    const exStartMs = p.startDt.getTime();
+    const hasHr = p.avgHr && p.avgHr > 0;
+    const dur = Math.max(p.dur, 1);
+
+    // Light HR trace across the exercise's active time.
+    const nRec = Math.max(Math.floor(dur / RECORD_INTERVAL_SEC), 1);
+    for (let i = 0; i <= nRec; i++) {
+      const elapsed = Math.min((i * dur) / nRec, dur);
+      const rec = { timestamp: new Date(exStartMs + elapsed * 1000) };
+      if (hasHr) {
+        const v = Math.min(5, p.avgHr * 0.03);
+        rec.heartRate = Math.floor(p.avgHr - v + 2 * v * Math.sin((elapsed / dur) * Math.PI));
+      }
+      encoder.onMesg(Profile.MesgNum.RECORD, rec);
+    }
+
+    // One SET message per performed set (+ a rest set).
+    let cursor = exStartMs;
+    for (const s of p.sets) {
+      const reps = prVal(s.pr, 'IsoReps');
+      const wt = prVal(s.pr, 'IsoWeight');
+      const sDur = Math.max(prVal(s.pr, 'Duration', 0) || 0, 1);
+      const rest = prVal(s.pr, 'RestTime', 0) || 0;
+      const active = { messageIndex: mi++, timestamp: new Date(cursor + sDur * 1000), startTime: new Date(cursor), setType: 'active', duration: sDur };
+      if (reps != null) active.repetitions = Math.round(reps);
+      if (wt != null && wt > 0) { active.weight = wt; active.weightDisplayUnit = 'kilogram'; }
+      if (p.cat != null) active.category = [p.cat];
+      encoder.onMesg(Profile.MesgNum.SET, active);
+      cursor += sDur * 1000;
+      if (rest > 0) {
+        encoder.onMesg(Profile.MesgNum.SET, { messageIndex: mi++, timestamp: new Date(cursor + rest * 1000), startTime: new Date(cursor), setType: 'rest', duration: rest });
+        cursor += rest * 1000;
+      }
+    }
+
+    const exEndMs = Math.max(cursor, exStartMs + dur * 1000);
+    const lap = { messageIndex: lapIndex++, startTime: p.startDt, timestamp: new Date(exEndMs), totalElapsedTime: (exEndMs - exStartMs) / 1000, totalTimerTime: p.dur, totalCalories: Math.floor(p.cal), sport, subSport };
+    if (hasHr) lap.avgHeartRate = Math.floor(p.avgHr);
+    if (p.maxHr && p.maxHr > 0) lap.maxHeartRate = Math.floor(p.maxHr);
+    encoder.onMesg(Profile.MesgNum.LAP, lap);
+
+    sessionEndMs = Math.max(sessionEndMs, exEndMs);
+    totalCal += p.cal; totalTimer += p.dur;
+    if (hasHr) { hrWeighted += p.avgHr * dur; hrDur += dur; }
+    if (p.maxHr) maxHrAll = Math.max(maxHrAll, p.maxHr);
+  }
+
+  const sessionEnd = new Date(sessionEndMs);
+  encoder.onMesg(Profile.MesgNum.EVENT, { timestamp: sessionEnd, event: 'timer', eventType: 'stopAll' });
+
+  const session = { messageIndex: 0, startTime: sessionStart, timestamp: sessionEnd, totalElapsedTime: (sessionEndMs - sessionStart.getTime()) / 1000, totalTimerTime: totalTimer, totalCalories: Math.floor(totalCal), sport, subSport, firstLapIndex: 0, numLaps: lapIndex, trigger: 'activityEnd' };
+  if (hrDur > 0) session.avgHeartRate = Math.floor(hrWeighted / hrDur);
+  if (maxHrAll > 0) session.maxHeartRate = Math.floor(maxHrAll);
+  encoder.onMesg(Profile.MesgNum.SESSION, session);
+  encoder.onMesg(Profile.MesgNum.ACTIVITY, { timestamp: sessionEnd, totalTimerTime: totalTimer, numSessions: 1, type: 'manual' });
+
+  return encoder.close();
+}
+
+/* ================================================================
+   Strava strength-training JSON builder (data_type=json upload).
+   Format: https://developers.strava.com/docs/uploads/
+   One object per training session; each performed set becomes a
+   `sets[]` entry with a Strava exercise_type, reps, weight (kg).
+   ================================================================ */
+function buildStrengthJson(entries) {
+  const parts = entries.map(act => ({
+    on: act.on,
+    startDt: parseMwDate(act.on),
+    dur: Math.max(getField(act, 'Duration', 0) || 0, 0),
+    cal: getField(act, 'Calories', 0) || 0,
+    sets: act.performedData?.st || [],
+    type: stravaExerciseType(act.phId),
+  })).filter(p => p.startDt && !isNaN(p.startDt.getTime()));
+  if (!parts.length) throw new Error('empty strength session');
+
+  const sessionStart = parts[0].startDt;
+  let sessionEndMs = sessionStart.getTime(), totalCal = 0, activeTime = 0;
+  const jsonSets = [];
+
+  for (const p of parts) {
+    // Spread this exercise's sets evenly across its own logged duration so set
+    // timestamps stay within the exercise window (MyWellness exercise durations
+    // overlap on the real timeline, so accumulating work+rest would overshoot).
+    const n = p.sets.length || 1;
+    p.sets.forEach((s, i) => {
+      const reps = prVal(s.pr, 'IsoReps');
+      const wt = prVal(s.pr, 'IsoWeight');
+      const sDur = Math.max(prVal(s.pr, 'Duration', 0) || 0, 1);
+      const setStart = p.startDt.getTime() + (i * p.dur / n) * 1000;
+      const set = { exercise_type: p.type, start_time: new Date(setStart).toISOString() };
+      if (reps != null) set.repetitions = Math.round(reps);
+      else set.duration = Math.round(sDur);   // timed set (holds, e.g. planks)
+      if (wt != null && wt > 0) set.weight = wt;
+      jsonSets.push(set);
+    });
+    activeTime += p.dur;
+    totalCal += p.cal;
+    sessionEndMs = Math.max(sessionEndMs, p.startDt.getTime() + p.dur * 1000);
+  }
+
+  const elapsed = Math.round((sessionEndMs - sessionStart.getTime()) / 1000);
+  return {
+    version: '1.0',
+    start_time: sessionStart.toISOString(),
+    utc_offset: utcOffsetSeconds(parts[0].on),
+    elapsed_time: elapsed,
+    active_time: Math.min(Math.round(activeTime), elapsed),
+    total_calories: Math.round(totalCal),
+    creator: { name: 'MyWellness (Technogym)' },
+    sets: jsonSets,
+  };
+}
+
+/* ================================================================
    UI Logic
    ================================================================ */
 
@@ -471,13 +767,22 @@ const fileInput = document.getElementById('fileInput');
 const statusEl = document.getElementById('status');
 const resultsEl = document.getElementById('results');
 const downloadBtn = document.getElementById('downloadBtn');
+const downloadJsonBtn = document.getElementById('downloadJsonBtn');
 const filtersEl = document.getElementById('filters');
-let allActivities = [], outputZip = null;
+let allActivities = [], outputZip = null, strengthSessions = [];
 
 function log(m, c = 'info') {
   statusEl.classList.add('visible');
   statusEl.innerHTML += `<div class="line ${c}">${m}</div>`;
   statusEl.scrollTop = statusEl.scrollHeight;
+}
+
+function downloadBlob(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 dropZone.addEventListener('click', () => fileInput.click());
@@ -524,24 +829,81 @@ async function processFile(file) {
   if (!activities.length) { log(t('logNoActivity'), 'warn'); return; }
   allActivities = activities;
   filtersEl.classList.add('visible');
+  await catalogReady;   // ensure the phId->exercise catalog is loaded first
   convert(activities);
+}
+
+// Human-readable summary of a strength entry's sets, e.g. "10/10/10 reps @ 30kg".
+function setSummary(sets) {
+  if (!sets || !sets.length) return '';
+  const reps = sets.map(s => prVal(s.pr, 'IsoReps')).filter(v => v != null);
+  const wts = sets.map(s => prVal(s.pr, 'IsoWeight')).filter(v => v != null && v > 0);
+  const repStr = reps.length ? `${reps.map(r => Math.round(r)).join('/')} reps` : `${sets.length} set${sets.length > 1 ? 's' : ''}`;
+  return repStr + (wts.length ? ` @ ${Math.max(...wts)}kg` : '');
+}
+
+// Render the phId -> exercise-type mapping UI. Each distinct strength exercise
+// gets a dropdown of Strava exercise types; the choice is saved and re-applied.
+function renderExerciseMap(strengthPh) {
+  const el = document.getElementById('exmap');
+  const ids = Object.keys(strengthPh);
+  if (!ids.length) { el.classList.remove('visible'); el.innerHTML = ''; return; }
+  const rows = ids.map(id => {
+    const info = strengthPh[id];
+    const ex = exFor(id);
+    const mapped = !!(ex && ex.type);
+    const cur = mapped ? ex.type : '';
+    const nm = ex ? ex.name : 'Unknown exercise';
+    return `<tr class="exrow${mapped ? '' : ' unmapped'}">
+      <td class="exname">${nm}</td>
+      <td class="exsum">${info.summary || ''}${info.count > 1 ? ` · ${info.count}×` : ''}</td>
+      <td><select data-phid="${id}" data-cur="${cur}"><option value="">— unmapped —</option>${EX_OPTIONS_HTML}</select></td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `<div class="filters-title">${t('exmapTitle')}</div>
+    <div class="filter-hint" style="margin-bottom:0.7rem">${t('exmapHint')}</div>
+    <table class="exmap-table"><tbody>${rows}</tbody></table>`;
+  el.classList.add('visible');
+  el.querySelectorAll('select[data-phid]').forEach(sel => {
+    sel.value = sel.dataset.cur;
+    sel.addEventListener('change', () => {
+      setUserEx(sel.dataset.phid, sel.value || null);
+      convert(allActivities);
+    });
+  });
 }
 
 function convert(activities) {
   resultsEl.classList.remove('visible'); downloadBtn.disabled = true;
   outputZip = new JSZip();
   const stats = {}; let converted = 0, filtered = 0, errors = 0; const notes = [];
+  const strengthPh = {};      // phId -> { count, summary } — drives the mapping UI
+  const strengthEntries = []; // { act, c, startDt } — grouped into sessions below
 
+  // Record one exercise occurrence for the stats cards + mapping table.
+  function tallyExercise(act, c) {
+    const ex = exFor(act.phId);
+    const label = ex ? ex.name : 'Strength (unmapped)';
+    if (act.phId) {
+      strengthPh[act.phId] = strengthPh[act.phId] || { count: 0, summary: setSummary(act.performedData?.st || []) };
+      strengthPh[act.phId].count++;
+    }
+    stats[label] = stats[label] || { count: 0, badge: c.badge, garmin: ex ? ex.name : c.garmin, strava: c.strava, sport: c.sport, subSport: c.subSport };
+    stats[label].count++;
+  }
+
+  // Pass 1: emit one file per non-strength activity; collect strength entries.
   for (const act of activities) {
     try {
       if (!act.on) { errors++; continue; }
       const c = classify(act);
       const cb = document.getElementById(c.filter);
       if (cb && !cb.checked) { filtered++; continue; }
-      stats[c.label] = stats[c.label] || { count: 0, badge: c.badge, garmin: c.garmin, strava: c.strava, sport: c.sport, subSport: c.subSport };
-      stats[c.label].count++;
       const startDt = parseMwDate(act.on);
       if (!startDt || isNaN(startDt.getTime())) { errors++; continue; }
+
+      if (c.subSport === 'strengthTraining') { strengthEntries.push({ act, c, startDt }); continue; }
+
       const dur = getField(act, 'Duration', 0);
       const cal = getField(act, 'Calories', 0);
       const avgHr = getField(act, 'AvgHr');
@@ -551,22 +913,54 @@ function convert(activities) {
 
       const fitBytes = buildFitActivity(startDt, dur, cal, avgHr, maxHr, c.sport, c.subSport, avgPwr, dist);
       const dtStr = act.on.substring(0, 19).replace(/:/g, '-').replace('T', '_');
-      const fname = `${dtStr}_${c.label}.fit`;
-      outputZip.file(fname, fitBytes);
+      outputZip.file(`${dtStr}_${c.label}.fit`, fitBytes);
+      stats[c.label] = stats[c.label] || { count: 0, badge: c.badge, garmin: c.garmin, strava: c.strava, sport: c.sport, subSport: c.subSport };
+      stats[c.label].count++;
 
       const np = [`Technogym ${c.garmin}`];
       const fl = getField(act, 'Floors'); if (fl) np.push(`Floors: ${Math.floor(fl)}`);
       if (avgPwr) np.push(`Power: ${Math.floor(avgPwr)}W`);
       const lv = getField(act, 'Level'); if (lv) np.push(`Level: ${lv.toFixed(1)}`);
       const vo = getField(act, 'Vo2'); if (vo) np.push(`VO2: ${vo.toFixed(1)}`);
-      const wt = getField(act, 'TotalIsoWeight'); if (wt) np.push(`Weight: ${Math.floor(wt)}kg`);
       if (dist > 0) np.push(`Dist: ${(dist / 1000).toFixed(2)}km`);
-      notes.push(`${fname} | ${np.join(' | ')}`);
+      notes.push(`${dtStr}_${c.label}.fit | ${np.join(' | ')}`);
       converted++;
     } catch (e) { errors++; log(`  Err: ${act.on} - ${e.message}`, 'err'); }
   }
+
+  // Pass 2: group strength entries into training sessions by start-time
+  // proximity, then emit ONE combined FIT file per session.
+  strengthEntries.sort((a, b) => a.startDt - b.startDt);
+  const sessions = [];
+  for (const e of strengthEntries) {
+    const cur = sessions[sessions.length - 1];
+    const last = cur && cur[cur.length - 1];
+    if (!cur || (e.startDt - last.startDt) / 1000 > SESSION_GAP_SEC) sessions.push([e]);
+    else cur.push(e);
+  }
+
+  strengthSessions = sessions.map(sess => sess.map(e => e.act));
+
+  for (const sess of sessions) {
+    try {
+      for (const { act, c } of sess) tallyExercise(act, c);
+      const fitBytes = buildStrengthSession(sess.map(e => e.act));
+      const dtStr = sess[0].act.on.substring(0, 19).replace(/:/g, '-').replace('T', '_');
+      const fname = `${dtStr}_strength.fit`;
+      outputZip.file(fname, fitBytes);
+      const detail = sess.map(e => {
+        const ex = exFor(e.act.phId);
+        return `${ex ? ex.name : 'Unknown'} (${setSummary(e.act.performedData?.st || [])})`;
+      });
+      notes.push(`${fname} | Strength session, ${sess.length} exercise${sess.length > 1 ? 's' : ''} | ${detail.join(' | ')}`);
+      converted++;
+    } catch (e) { errors++; log(`  Err: strength session - ${e.message}`, 'err'); }
+  }
+
+  renderExerciseMap(strengthPh);
   outputZip.file('_notes_technogym.txt', notes.join('\n'));
-  log(`\n${converted} ${t('logConverted')}, ${filtered} ${t('logFiltered')}, ${errors} ${t('logErrors')}`, converted > 0 ? 'ok' : 'err');
+  const sessMsg = sessions.length ? ` · ${sessions.length} strength session${sessions.length > 1 ? 's' : ''}` : '';
+  log(`\n${converted} ${t('logConverted')}${sessMsg}, ${filtered} ${t('logFiltered')}, ${errors} ${t('logErrors')}`, converted > 0 ? 'ok' : 'err');
 
   const grid = document.getElementById('statsGrid'); grid.innerHTML = '';
   const tc = document.createElement('div'); tc.className = 'stat-card'; tc.dataset.stat = 'converted';
@@ -588,17 +982,34 @@ function convert(activities) {
   }
   resultsEl.classList.add('visible');
   downloadBtn.disabled = converted === 0;
+  downloadJsonBtn.style.display = strengthSessions.length ? 'inline-flex' : 'none';
 }
 
 downloadBtn.addEventListener('click', async () => {
   if (!outputZip) return;
   downloadBtn.disabled = true; downloadBtn.textContent = t('generating');
   const blob = await outputZip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `mywellness_garmin_fit_${new Date().toISOString().slice(0, 10)}.zip`;
-  a.click(); URL.revokeObjectURL(a.href);
+  downloadBlob(blob, `mywellness_garmin_fit_${new Date().toISOString().slice(0, 10)}.zip`);
   downloadBtn.disabled = false; downloadBtn.innerHTML = t('downloadBtn');
   log('\n' + t('logDownloaded'), 'ok');
+});
+
+// Strava strength-training JSON: one file per session (zipped if several).
+downloadJsonBtn.addEventListener('click', async () => {
+  if (!strengthSessions.length) return;
+  const files = strengthSessions.map(entries => {
+    const dt = entries[0].on.substring(0, 19).replace(/:/g, '-').replace('T', '_');
+    return { name: `${dt}_strength.json`, text: JSON.stringify(buildStrengthJson(entries), null, 2) };
+  });
+  if (files.length === 1) {
+    downloadBlob(new Blob([files[0].text], { type: 'application/json' }), files[0].name);
+  } else {
+    const zip = new JSZip();
+    for (const f of files) zip.file(f.name, f.text);
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    downloadBlob(blob, `mywellness_strava_strength_json_${new Date().toISOString().slice(0, 10)}.zip`);
+  }
+  log('\n' + t('logJsonDownloaded'), 'ok');
 });
 </script>
 </body>

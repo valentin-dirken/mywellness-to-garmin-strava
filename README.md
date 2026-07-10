@@ -85,6 +85,15 @@ Technogym-specific fields have no native FIT equivalent. They are preserved as s
 
 This file is your reference for machine-specific data that Garmin and Strava cannot display. Keep it alongside your FIT files for complete records.
 
+### Strength training
+
+Strength workouts get extra handling so the individual movements survive the conversion:
+
+- **One FIT file per session.** All strength exercises logged in the same gym session (starts within 90 minutes of each other) are combined into a single FIT activity — one lap per exercise — instead of a separate file per exercise.
+- **Per-set detail.** Every performed set becomes a FIT `SET` message with its reps, weight (kg) and rest, tagged with a FIT `exercise_category` so Garmin Connect shows the named movement (Push Up, Deadlift, Squat, …).
+- **Exercise-type labels.** MyWellness identifies each exercise only by an opaque id, so the tool maps it to a [Strava strength `exercise_type`](https://developers.strava.com/docs/uploads/) (~500 named movements; the coarser FIT category is derived from it). A handful of common exercises are pre-labelled; anything else appears in a dropdown where you assign the type once — your choices are remembered in your browser (`localStorage`), no account needed.
+- **Strava strength JSON.** For strength sessions a second **"Strength JSON (Strava)"** button appears and exports Strava's strength-training JSON (`data_type=json`) — one file per session with named `sets[]` (type, reps, weight). Drop it on [strava.com/upload/select](https://www.strava.com/upload/select) to get per-set strength detail in Strava (this works even though the upload page only advertises .fit/.tcx/.gpx).
+
 ### How to use
 
 1. **Export** your data from [mywellness.com](https://www.mywellness.com) (Settings > Data Export > Download). You get a ZIP containing JSON files.
@@ -179,6 +188,15 @@ Les equipements Technogym (Excite Climb, Artis Strength, tapis de course, rameur
 ### Conformite au protocole FIT
 
 Tous les fichiers produits passent la validation `checkIntegrity()` du SDK officiel. Verification complete contre la [specification du protocole FIT](https://developer.garmin.com/fit/protocol/) : header 14 octets avec CRC, magic bytes `.FIT`, file_id en premier record, Sport message (mesg 12), paire Event start/stopAll, Records toutes les 60s, Lap, Session, Activity, CRC de fin de fichier.
+
+### Musculation
+
+Les seances de musculation beneficient d'un traitement dedie :
+
+- **Un fichier FIT par seance.** Tous les exercices de force d'une meme seance (demarres a moins de 90 minutes d'intervalle) sont regroupes dans une seule activite FIT — un lap par exercice — au lieu d'un fichier par exercice.
+- **Detail par serie.** Chaque serie effectuee devient un message FIT `SET` (repetitions, poids en kg, repos), avec une `exercise_category` FIT pour que Garmin Connect affiche le mouvement nomme (Pompes, Souleve de terre, Squat, …).
+- **Types d'exercices.** MyWellness n'identifie chaque exercice que par un id opaque ; l'outil le mappe vers un [`exercise_type` de musculation Strava](https://developers.strava.com/docs/uploads/) (~500 mouvements ; la categorie FIT en est deduite). Quelques exercices courants sont pre-etiquetes ; pour les autres, un menu deroulant permet d'attribuer le type une fois — vos choix sont memorises dans le navigateur (`localStorage`).
+- **JSON musculation Strava.** Un second bouton **« JSON Musculation (Strava) »** apparait pour les seances de force et exporte le JSON de musculation Strava (`data_type=json`) — un fichier par seance avec des `sets[]` nommes (type, repetitions, poids). Deposez-le sur [strava.com/upload/select](https://www.strava.com/upload/select) pour obtenir le detail par serie dans Strava.
 
 ### Comment utiliser
 
@@ -276,6 +294,15 @@ Technogym-apparatuur (Excite Climb, Artis Strength, loopbanden, roeiers) slaat t
 
 Alle outputbestanden slagen voor de officiele SDK `checkIntegrity()` validatie. Geverifieerd tegen de [FIT Protocol specificatie](https://developer.garmin.com/fit/protocol/): 14-byte header met CRC, `.FIT` magic bytes, file_id als eerste datarecord, Sport message (mesg 12), Event start/stopAll paar, Records elke 60 seconden, Lap, Session, Activity, file CRC.
 
+### Krachttraining
+
+Krachttrainingen krijgen extra verwerking:
+
+- **Een FIT-bestand per sessie.** Alle krachtoefeningen uit dezelfde sessie (gestart binnen 90 minuten van elkaar) worden gecombineerd tot een enkele FIT-activiteit — een lap per oefening — in plaats van een bestand per oefening.
+- **Detail per set.** Elke uitgevoerde set wordt een FIT `SET`-bericht (herhalingen, gewicht in kg, rust), voorzien van een FIT `exercise_category` zodat Garmin Connect de benoemde beweging toont (Push-up, Deadlift, Squat, …).
+- **Oefeningtypes.** MyWellness identificeert elke oefening alleen met een ondoorzichtige id; de tool koppelt die aan een [Strava kracht-`exercise_type`](https://developers.strava.com/docs/uploads/) (~500 bewegingen; de FIT-categorie wordt hieruit afgeleid). Een handvol veelvoorkomende oefeningen is vooraf gelabeld; de rest label je eenmalig via een dropdown — je keuzes worden onthouden in je browser (`localStorage`).
+- **Strava kracht-JSON.** Voor krachtsessies verschijnt een tweede knop **"Kracht-JSON (Strava)"** die Strava's krachttraining-JSON exporteert (`data_type=json`) — een bestand per sessie met benoemde `sets[]` (type, herhalingen, gewicht). Sleep het naar [strava.com/upload/select](https://www.strava.com/upload/select) voor detail per set in Strava.
+
 ### Gebruik
 
 1. **Exporteer** je data van [mywellness.com](https://www.mywellness.com) (Settings > Data Export > Download).
@@ -369,6 +396,15 @@ Technogym-Gerate (Excite Climb, Artis Strength, Laufbander, Rudermaschinen) spei
 ### FIT-Protokoll Konformitat
 
 Alle Ausgabedateien bestehen die offizielle SDK `checkIntegrity()` Validierung. Verifiziert gegen die [FIT-Protokoll-Spezifikation](https://developer.garmin.com/fit/protocol/): 14-Byte-Header mit CRC, `.FIT` Magic Bytes, file_id als erster Datensatz, Sport Message (mesg 12), Event start/stopAll Paar, Records alle 60 Sekunden, Lap, Session, Activity, Datei-CRC.
+
+### Krafttraining
+
+Krafttrainings werden gesondert behandelt:
+
+- **Eine FIT-Datei pro Einheit.** Alle Kraftubungen derselben Trainingseinheit (innerhalb von 90 Minuten gestartet) werden zu einer einzigen FIT-Aktivitat zusammengefasst — ein Lap pro Ubung — statt einer Datei pro Ubung.
+- **Detail pro Satz.** Jeder ausgefuhrte Satz wird zu einer FIT-`SET`-Nachricht (Wiederholungen, Gewicht in kg, Pause) mit einer FIT-`exercise_category`, damit Garmin Connect die benannte Ubung anzeigt (Liegestutz, Kreuzheben, Kniebeuge, …).
+- **Ubungstypen.** MyWellness identifiziert jede Ubung nur uber eine undurchsichtige id; das Tool ordnet sie einem [Strava-Kraft-`exercise_type`](https://developers.strava.com/docs/uploads/) zu (~500 Bewegungen; die FIT-Kategorie wird daraus abgeleitet). Einige gangige Ubungen sind vorbelegt; alles andere weist du einmalig uber ein Dropdown zu — deine Auswahl wird im Browser gespeichert (`localStorage`).
+- **Strava-Kraft-JSON.** Fur Krafteinheiten erscheint ein zweiter Button **„Kraft-JSON (Strava)"** und exportiert Stravas Krafttraining-JSON (`data_type=json`) — eine Datei pro Einheit mit benannten `sets[]` (Typ, Wiederholungen, Gewicht). Lege sie auf [strava.com/upload/select](https://www.strava.com/upload/select) ab, um Detail pro Satz in Strava zu erhalten.
 
 ### Verwendung
 
